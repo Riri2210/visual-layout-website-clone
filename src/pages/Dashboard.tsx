@@ -1,7 +1,7 @@
 
 import React from 'react';
 import Layout from '@/components/Layout';
-import { FileText, Search, PlusCircle, Calendar } from 'lucide-react';
+import { FileText, Search, PlusCircle, Calendar, School } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
