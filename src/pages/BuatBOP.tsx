@@ -28,6 +28,7 @@ interface Item {
   unitPrice: number;
   ppn: boolean;
   pph: boolean;
+  pphPercentage?: string;
   netto: number;
 }
 
@@ -47,7 +48,11 @@ interface InvoiceData {
 const calculateNetto = (item: Omit<Item, 'netto'>): number => {
   const subtotal = item.quantity * item.unitPrice;
   const ppnAmount = item.ppn ? subtotal * 0.11 : 0;
-  const pphAmount = item.pph ? subtotal * 0.02 : 0;
+  
+  const pphAmount = item.pph && item.pphPercentage 
+    ? subtotal * parseFloat(item.pphPercentage.replace('%', '')) / 100 
+    : (item.pph ? subtotal * 0.02 : 0);
+  
   return subtotal + ppnAmount - pphAmount;
 };
 
@@ -241,6 +246,7 @@ const BuatBOP = () => {
       unitPrice: 0,
       ppn: false,
       pph: false,
+      pphPercentage: undefined,
       netto: 0
     }
   ]);
@@ -311,7 +317,21 @@ const BuatBOP = () => {
   };
 
   const handleItemChange = (index: number, field: keyof Item, value: any) => {
-    updateItemAndRecalculate(index, { [field]: value });
+    if (field === 'pph') {
+      const pphPercentages = {
+        false: 0,
+        '0.5%': 0.005,
+        '1.5%': 0.015,
+        '2%': 0.02
+      };
+      
+      updateItemAndRecalculate(index, { 
+        pph: value !== false, 
+        pphPercentage: value !== false ? value : undefined 
+      });
+    } else {
+      updateItemAndRecalculate(index, { [field]: value });
+    }
   };
 
   const handleAddItem = () => {
@@ -324,6 +344,7 @@ const BuatBOP = () => {
       unitPrice: 0,
       ppn: false,
       pph: false,
+      pphPercentage: undefined,
       netto: 0
     };
     setItems([...items, newItem]);
@@ -572,11 +593,20 @@ const BuatBOP = () => {
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="flex items-center justify-center">
-                        <Checkbox 
-                          id={`pph-${item.id}`} 
-                          checked={item.pph} 
-                          onCheckedChange={(checked) => handleItemChange(index, 'pph', checked === true)}
-                        />
+                        <Select 
+                          value={item.pph ? (item.pphPercentage || '2%') : 'false'} 
+                          onValueChange={(value) => handleItemChange(index, 'pph', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="PPh" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="false">Tidak ada PPh</SelectItem>
+                            <SelectItem value="0.5%">0.5%</SelectItem>
+                            <SelectItem value="1.5%">1.5%</SelectItem>
+                            <SelectItem value="2%">2%</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
