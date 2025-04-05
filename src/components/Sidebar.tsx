@@ -14,8 +14,8 @@ const Sidebar = () => {
       { title: 'Pengaturan', icon: <Settings size={18} />, path: '/pengaturan' },
     ]},
     { section: 'FAKTUR', items: [
-      { title: 'BOS', icon: <FileText size={18} />, path: '/bos' },
-      { title: 'BOP', icon: <FileText size={18} />, path: '/bop' },
+      { title: 'BOS', icon: <FileText size={18} />, path: '/buat-bos' },
+      { title: 'BOP', icon: <FileText size={18} />, path: '/buat-bop' },
       { title: 'Riwayat Faktur', icon: <ClipboardList size={18} />, path: '/riwayat-faktur' },
     ]},
     { section: 'PENGATURAN', items: [
