@@ -1,14 +1,23 @@
 import React, { useState } from 'react';
 import Layout from '@/components/Layout';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Eye, Save, FileText } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface Item {
   id: string;
@@ -22,6 +31,19 @@ interface Item {
   netto: number;
 }
 
+interface InvoiceData {
+  invoiceNumber: string;
+  date: string;
+  recipient: string;
+  items: Item[];
+  totalBeforeTax: number;
+  ppnAmount: number;
+  pphAmount: number;
+  grandTotal: number;
+  activityName: string;
+  accountCode: string;
+}
+
 const calculateNetto = (item: Omit<Item, 'netto'>): number => {
   const subtotal = item.quantity * item.unitPrice;
   const ppnAmount = item.ppn ? subtotal * 0.11 : 0;
@@ -30,7 +52,173 @@ const calculateNetto = (item: Omit<Item, 'netto'>): number => {
 };
 
 const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(amount);
+  return new Intl.NumberFormat('id-ID', { 
+    style: 'currency', 
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(amount);
+};
+
+const generateInvoiceNumber = (): string => {
+  const currentDate = new Date();
+  const year = currentDate.getFullYear();
+  const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+  const day = String(currentDate.getDate()).padStart(2, '0');
+  
+  return `F.${year}Bulan${month}Tanggal${day}`;
+};
+
+const getMonthName = (monthNumber: number): string => {
+  const months = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ];
+  return months[monthNumber - 1];
+};
+
+const InvoicePreview: React.FC<{ data: InvoiceData }> = ({ data }) => {
+  return (
+    <div className="bg-white w-full p-8 shadow-lg border rounded-md print:shadow-none">
+      {/* Header */}
+      <div className="flex justify-between items-start mb-8">
+        <div className="flex items-start gap-4">
+          <div className="w-20 h-20 bg-blue-500 flex items-center justify-center border-4 border-red-500 relative overflow-hidden">
+            <div className="absolute inset-0">
+              <div className="bg-yellow-400 w-full h-full">
+                <div className="grid grid-cols-3 h-full">
+                  <div className="bg-blue-500"></div>
+                  <div className="bg-red-500"></div>
+                  <div className="bg-blue-500"></div>
+                </div>
+              </div>
+            </div>
+            <span className="text-4xl font-bold text-white z-10">H</span>
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">CV. HARUMI MULTI INOVASI</h1>
+            <p className="text-sm">Toko Komputer dan Olahraga, Pemeliharaan Gedung, dan Event Organizer</p>
+            <p className="text-sm">Jl. Matraman Raya No. 67 Kec. Matraman - Jakarta Timur</p>
+            <p className="text-sm">e-mail: cv.harumi.multi.inovasi@gmail.com, Telp. 089503939444</p>
+          </div>
+        </div>
+        <div className="border border-black px-4 py-2">
+          <h2 className="text-lg font-bold text-center">FAKTUR</h2>
+          <p className="text-sm text-center">{data.invoiceNumber}</p>
+        </div>
+      </div>
+
+      {/* Invoice Info */}
+      <div className="grid grid-cols-2 mb-6">
+        <div>
+          <div className="flex">
+            <span className="w-28">Tanggal</span>
+            <span className="mr-2">:</span>
+            <span>{data.date}</span>
+          </div>
+          <div className="flex">
+            <span className="w-28">No. Pesanan</span>
+            <span className="mr-2">:</span>
+            <span>{data.accountCode}</span>
+          </div>
+          <div className="flex">
+            <span className="w-28">No. Surat Jalan</span>
+            <span className="mr-2">:</span>
+            <span>{`HMISI.${data.invoiceNumber}`}</span>
+          </div>
+        </div>
+        <div>
+          <div className="flex flex-col">
+            <span>Kepada</span>
+            <span className="font-bold">{`Yth. ${data.recipient}`}</span>
+            <span>di</span>
+            <span>Tempat</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Items Table */}
+      <table className="w-full mb-4 border-collapse">
+        <thead>
+          <tr>
+            <th className="border border-black p-2 w-16 text-center">NO</th>
+            <th className="border border-black p-2 text-center">NAMA BARANG</th>
+            <th className="border border-black p-2 w-20 text-center">QTY</th>
+            <th className="border border-black p-2 w-32 text-center">HARGA</th>
+            <th className="border border-black p-2 w-32 text-center">JUMLAH</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.items.map((item, index) => (
+            <tr key={item.id}>
+              <td className="border border-black p-2 text-center">{index + 1}</td>
+              <td className="border border-black p-2">{item.name}</td>
+              <td className="border border-black p-2 text-center">{`${item.quantity} ${item.unit}`}</td>
+              <td className="border border-black p-2 text-right">{formatCurrency(item.unitPrice).replace('Rp\u00A0', 'Rp ')}</td>
+              <td className="border border-black p-2 text-right">{formatCurrency(item.totalPrice).replace('Rp\u00A0', 'Rp ')}</td>
+            </tr>
+          ))}
+          {/* Empty rows to fill space */}
+          {Array.from({ length: Math.max(5 - data.items.length, 0) }).map((_, index) => (
+            <tr key={`empty-${index}`}>
+              <td className="border border-black p-2">&nbsp;</td>
+              <td className="border border-black p-2"></td>
+              <td className="border border-black p-2"></td>
+              <td className="border border-black p-2"></td>
+              <td className="border border-black p-2"></td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colSpan={4} className="border border-black p-2 font-bold text-right">TOTAL</td>
+            <td className="border border-black p-2 text-right">{formatCurrency(data.totalBeforeTax).replace('Rp\u00A0', 'Rp ')}</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      {/* Notes and Totals */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="border border-black p-2">
+          <p className="font-bold">Perhatian!</p>
+          <p className="text-sm">Barang yang sudah dibeli tidak dapat dikembalikan</p>
+          <p className="text-sm">kecuali sudah perjanjian terlebih dahulu</p>
+          <p className="text-sm mt-2">NPWP: 96585333009000</p>
+          <p className="text-sm">No. Rek</p>
+          <p className="text-sm">DKI&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: 43608001223</p>
+          <p className="text-sm">BNI&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: 3097878775</p>
+        </div>
+        <div>
+          <table className="w-full border-collapse">
+            <tbody>
+              <tr>
+                <td className="p-2 text-right">Total Sebelum PPN</td>
+                <td className="border border-black p-2 w-32 text-right">{formatCurrency(data.totalBeforeTax).replace('Rp\u00A0', 'Rp ')}</td>
+              </tr>
+              <tr>
+                <td className="p-2 text-right">PPN</td>
+                <td className="border border-black p-2 text-right">{formatCurrency(data.ppnAmount).replace('Rp\u00A0', 'Rp ')}</td>
+              </tr>
+              <tr>
+                <td className="p-2 text-right">PPH</td>
+                <td className="border border-black p-2 text-right">{formatCurrency(data.pphAmount).replace('Rp\u00A0', 'Rp ')}</td>
+              </tr>
+              <tr>
+                <td className="p-2 text-right">Grand Total</td>
+                <td className="border border-black p-2 text-right">{formatCurrency(data.grandTotal).replace('Rp\u00A0', 'Rp ')}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="mt-8 text-center">
+        <p className="font-bold mb-20">CV. HARUMI MULTI INOVASI</p>
+        <p className="font-bold">Ananda Shafa Rianti</p>
+      </div>
+    </div>
+  );
 };
 
 const BuatBOP = () => {
@@ -39,7 +227,8 @@ const BuatBOP = () => {
     fundSource: 'bop',
     activityDate: new Date().toISOString().split('T')[0],
     activityName: '',
-    accountCode: ''
+    accountCode: '',
+    recipient: 'Kepala SDN BARU 07'
   });
 
   const [items, setItems] = useState<Item[]>([
@@ -64,6 +253,8 @@ const BuatBOP = () => {
     administration: 0,
     total: 0
   });
+
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -156,32 +347,8 @@ const BuatBOP = () => {
     setSummary(newSummary);
   };
 
-  const generateInvoicePreview = () => {
-    let preview = `FAKTUR BOP\n\n`;
-    preview += `Tanggal Kegiatan: ${invoiceInfo.activityDate}\n`;
-    preview += `Nama Kegiatan: ${invoiceInfo.activityName}\n`;
-    preview += `Kode Rekening: ${invoiceInfo.accountCode}\n\n`;
-    
-    preview += `ITEM:\n`;
-    items.forEach((item, index) => {
-      preview += `${index + 1}. ${item.name} - ${item.quantity} ${item.unit} x ${formatCurrency(item.unitPrice)} = ${formatCurrency(item.netto)}\n`;
-    });
-    
-    preview += `\nTotal: ${formatCurrency(summary.total)}`;
-    
-    return preview;
-  };
-
   const handlePreview = () => {
-    const preview = generateInvoicePreview();
-    toast({
-      title: "Pratinjau Faktur",
-      description: "Faktur telah dibuat dalam bentuk pratinjau"
-    });
-    
-    // For now, we'll just update the preview text area
-    const previewElement = document.getElementById('pratinjau-faktur') as HTMLTextAreaElement;
-    if (previewElement) previewElement.value = preview;
+    setPreviewOpen(true);
   };
 
   const handleSaveDraft = () => {
@@ -225,6 +392,24 @@ const BuatBOP = () => {
       title: "Faktur Dibuat",
       description: "Faktur BOP telah berhasil dibuat dan disimpan"
     });
+
+    // Open the preview after creating
+    setPreviewOpen(true);
+  };
+
+  const getInvoicePreviewData = () => {
+    return {
+      invoiceNumber: generateInvoiceNumber(),
+      date: `Tanggal ${invoiceInfo.activityDate.split('-')[2]} ${getMonthName(parseInt(invoiceInfo.activityDate.split('-')[1], 10))} ${invoiceInfo.activityDate.split('-')[0]}`,
+      recipient: invoiceInfo.recipient,
+      items: items,
+      totalBeforeTax: summary.subtotal,
+      ppnAmount: summary.totalPPN,
+      pphAmount: summary.totalPPH,
+      grandTotal: summary.total,
+      activityName: invoiceInfo.activityName,
+      accountCode: invoiceInfo.accountCode || '15291/PK.01.01'
+    };
   };
 
   return (
@@ -235,7 +420,7 @@ const BuatBOP = () => {
       </div>
 
       <Card className="mb-6">
-        <div className="p-6">
+        <CardContent className="p-6">
           <h2 className="text-lg font-medium mb-4">Informasi Faktur</h2>
           
           <div className="grid grid-cols-2 gap-6">
@@ -289,55 +474,69 @@ const BuatBOP = () => {
                 className="mt-1" 
               />
             </div>
+            
+            <div>
+              <Label htmlFor="recipient">Penerima</Label>
+              <Input 
+                id="recipient" 
+                name="recipient"
+                placeholder="Masukkan nama penerima" 
+                value={invoiceInfo.recipient} 
+                onChange={handleInputChange}
+                className="mt-1" 
+              />
+            </div>
           </div>
-        </div>
+        </CardContent>
       </Card>
       
       <Card className="mb-6">
-        <div className="p-6">
+        <CardContent className="p-6">
           <h2 className="text-lg font-medium mb-4">Detail Barang</h2>
           
           <div className="overflow-x-auto">
-            <table className="w-full mb-4">
-              <thead>
-                <tr>
-                  <th className="table-header">Nama Barang</th>
-                  <th className="table-header">Harga Total</th>
-                  <th className="table-header">Qty</th>
-                  <th className="table-header">Satuan</th>
-                  <th className="table-header">Harga Satuan</th>
-                  <th className="table-header">PPN</th>
-                  <th className="table-header">PPh</th>
-                  <th className="table-header">Netto</th>
-                  <th className="table-header"></th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-1/3">Nama Barang</TableHead>
+                  <TableHead className="text-right">Harga Total</TableHead>
+                  <TableHead className="text-right">Qty</TableHead>
+                  <TableHead>Satuan</TableHead>
+                  <TableHead className="text-right">Harga Satuan</TableHead>
+                  <TableHead className="text-center">PPN</TableHead>
+                  <TableHead className="text-center">PPh</TableHead>
+                  <TableHead className="text-right">Netto</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {items.map((item, index) => (
-                  <tr key={item.id}>
-                    <td className="table-cell">
+                  <TableRow key={item.id}>
+                    <TableCell>
                       <Input 
                         placeholder="Nama barang" 
                         value={item.name} 
                         onChange={(e) => handleItemChange(index, 'name', e.target.value)}
                       />
-                    </td>
-                    <td className="table-cell">
+                    </TableCell>
+                    <TableCell className="text-right">
                       <Input 
                         type="number" 
                         value={item.totalPrice} 
                         readOnly 
+                        className="text-right"
                       />
-                    </td>
-                    <td className="table-cell">
+                    </TableCell>
+                    <TableCell>
                       <Input 
                         type="number" 
                         value={item.quantity} 
                         min={1}
                         onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value) || 0)}
+                        className="text-right"
                       />
-                    </td>
-                    <td className="table-cell">
+                    </TableCell>
+                    <TableCell>
                       <Select 
                         value={item.unit} 
                         onValueChange={(value) => handleItemChange(index, 'unit', value)}
@@ -349,18 +548,20 @@ const BuatBOP = () => {
                           <SelectItem value="unit">Unit</SelectItem>
                           <SelectItem value="pcs">Pcs</SelectItem>
                           <SelectItem value="buah">Buah</SelectItem>
+                          <SelectItem value="paket">Paket</SelectItem>
                         </SelectContent>
                       </Select>
-                    </td>
-                    <td className="table-cell">
+                    </TableCell>
+                    <TableCell>
                       <Input 
                         type="number" 
                         value={item.unitPrice} 
                         min={0}
                         onChange={(e) => handleItemChange(index, 'unitPrice', parseInt(e.target.value) || 0)}
+                        className="text-right"
                       />
-                    </td>
-                    <td className="table-cell">
+                    </TableCell>
+                    <TableCell className="text-center">
                       <div className="flex items-center justify-center">
                         <Checkbox 
                           id={`ppn-${item.id}`} 
@@ -368,8 +569,8 @@ const BuatBOP = () => {
                           onCheckedChange={(checked) => handleItemChange(index, 'ppn', checked === true)}
                         />
                       </div>
-                    </td>
-                    <td className="table-cell">
+                    </TableCell>
+                    <TableCell className="text-center">
                       <div className="flex items-center justify-center">
                         <Checkbox 
                           id={`pph-${item.id}`} 
@@ -377,11 +578,11 @@ const BuatBOP = () => {
                           onCheckedChange={(checked) => handleItemChange(index, 'pph', checked === true)}
                         />
                       </div>
-                    </td>
-                    <td className="table-cell">
+                    </TableCell>
+                    <TableCell className="text-right">
                       <span>{formatCurrency(item.netto)}</span>
-                    </td>
-                    <td className="table-cell">
+                    </TableCell>
+                    <TableCell>
                       <Button 
                         variant="ghost" 
                         size="sm" 
@@ -389,34 +590,24 @@ const BuatBOP = () => {
                       >
                         <Trash2 size={16} className="text-red-500" />
                       </Button>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
           
-          <Button variant="outline" className="w-full" onClick={handleAddItem}>
+          <Button variant="outline" className="w-full mt-4" onClick={handleAddItem}>
             + Tambah Item
           </Button>
-        </div>
+        </CardContent>
       </Card>
       
       <Card>
-        <div className="p-6">
+        <CardContent className="p-6">
           <h2 className="text-lg font-medium mb-4">Ringkasan</h2>
           
           <div className="grid grid-cols-2 gap-6">
-            <div>
-              <Label htmlFor="pratinjau-faktur">Pratinjau Faktur</Label>
-              <Textarea 
-                id="pratinjau-faktur"
-                className="w-full mt-1 p-2 border rounded-md resize-none h-32"
-                placeholder="Isi formulir untuk melihat pratinjau faktur"
-                readOnly
-              ></Textarea>
-            </div>
-            
             <div className="space-y-2">
               <div className="flex justify-between py-2">
                 <span className="font-medium">Subtotal</span>
@@ -446,12 +637,37 @@ const BuatBOP = () => {
           </div>
           
           <div className="flex justify-end mt-8 gap-2">
-            <Button variant="outline" onClick={handlePreview}>Pratinjau</Button>
-            <Button variant="outline" onClick={handleSaveDraft}>Simpan Draft</Button>
-            <Button onClick={handleCreateInvoice}>Buat Faktur</Button>
+            <Button variant="outline" onClick={handlePreview} className="flex items-center gap-2">
+              <Eye size={16} />
+              Pratinjau
+            </Button>
+            <Button variant="outline" onClick={handleSaveDraft} className="flex items-center gap-2">
+              <Save size={16} />
+              Simpan Draft
+            </Button>
+            <Button onClick={handleCreateInvoice} className="flex items-center gap-2">
+              <FileText size={16} />
+              Buat Faktur
+            </Button>
           </div>
-        </div>
+        </CardContent>
       </Card>
+
+      {/* Invoice Preview Dialog */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Pratinjau Faktur</DialogTitle>
+          </DialogHeader>
+          <div className="p-4">
+            <InvoicePreview data={getInvoicePreviewData()} />
+          </div>
+          <div className="mt-4 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setPreviewOpen(false)}>Tutup</Button>
+            <Button onClick={() => window.print()}>Cetak</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };
