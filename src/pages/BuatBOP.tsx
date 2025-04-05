@@ -10,12 +10,12 @@ import { Trash2 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 
-const BuatBOS = () => {
+const BuatBOP = () => {
   return (
-    <Layout title="Buat BOS">
+    <Layout title="Buat BOP">
       <div className="mb-4">
-        <h1 className="text-xl font-bold">Buat BOS Baru</h1>
-        <p className="text-sm text-gray-500">Isi detail di bawah untuk membuat faktur Bantuan Operasional Sekolah (BOS)</p>
+        <h1 className="text-xl font-bold">Buat BOP Baru</h1>
+        <p className="text-sm text-gray-500">Isi detail di bawah untuk membuat faktur Bantuan Operasional Pendidikan (BOP)</p>
       </div>
 
       <Card className="mb-6">
@@ -25,12 +25,12 @@ const BuatBOS = () => {
           <div className="grid grid-cols-2 gap-6">
             <div>
               <Label htmlFor="sumber-dana">Sumber Dana</Label>
-              <Select defaultValue="bos">
+              <Select defaultValue="bop">
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Pilih Sumber Dana" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="bos">BOS - Bantuan Operasional Sekolah</SelectItem>
+                  <SelectItem value="bop">BOP - Bantuan Operasional Pendidikan</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -181,4 +181,4 @@ const BuatBOS = () => {
   );
 };
 
-export default BuatBOS;
+export default BuatBOP;

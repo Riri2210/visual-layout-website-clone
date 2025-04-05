@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import IdentitasSekolah from "./pages/IdentitasSekolah";
 import RiwayatFaktur from "./pages/RiwayatFaktur";
 import BuatBOS from "./pages/BuatBOS";
+import BuatBOP from "./pages/BuatBOP";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,7 @@ const App = () => (
           <Route path="/identitas-sekolah" element={<IdentitasSekolah />} />
           <Route path="/riwayat-faktur" element={<RiwayatFaktur />} />
           <Route path="/buat-bos" element={<BuatBOS />} />
+          <Route path="/buat-bop" element={<BuatBOP />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
