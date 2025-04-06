@@ -1,36 +1,99 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Edit, Eye, FileText, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import InvoicePreview from '@/components/InvoicePreview';
+import { useToast } from '@/hooks/use-toast';
+
+interface InvoiceHistoryItem {
+  no_faktur: string;
+  tanggal: string;
+  sumber_dana: string;
+  kegiatan: string;
+  total: string;
+  items: any[];
+  summary: any;
+  accountCode: string;
+  recipient: string;
+  activityDate: string;
+  timestamp: string;
+}
 
 const RiwayatFaktur = () => {
-  const fakturData = [
-    {
-      no_faktur: 'HMI-F/25040170/AGI',
-      tanggal: '-',
-      sumber_dana: 'BOS',
-      kegiatan: 'Pengadaan Alat Elektronik',
-      total: 'Rp 5.304.000',
-    },
-    {
-      no_faktur: 'HMI-F/25040130/AGI',
-      tanggal: '-',
-      sumber_dana: 'BOS',
-      kegiatan: 'Pengadaan Alat Elektronik',
-      total: 'Rp 5.967.000',
-    },
-    {
-      no_faktur: 'HMI-F/25040251/AGI',
-      tanggal: '-',
-      sumber_dana: 'BOS',
-      kegiatan: 'Pengadaan Alat Elektronik',
-      total: 'Rp 21.513.514',
+  const { toast } = useToast();
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [invoiceType, setInvoiceType] = useState('semua');
+  const [sortBy, setSortBy] = useState('tanggal');
+  const [sortOrder, setSortOrder] = useState('terbaru');
+  const [fakturData, setFakturData] = useState<InvoiceHistoryItem[]>([]);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<InvoiceHistoryItem | null>(null);
+
+  // Load invoice data from localStorage on component mount
+  useEffect(() => {
+    const storedInvoices = localStorage.getItem('invoiceHistory');
+    if (storedInvoices) {
+      const parsedInvoices = JSON.parse(storedInvoices);
+      setFakturData(parsedInvoices);
     }
-  ];
+  }, []);
+
+  // Filter and sort invoices based on user selection
+  const filteredInvoices = fakturData
+    .filter(invoice => {
+      // Filter by keyword
+      if (searchKeyword && !invoice.kegiatan.toLowerCase().includes(searchKeyword.toLowerCase()) && 
+          !invoice.no_faktur.toLowerCase().includes(searchKeyword.toLowerCase())) {
+        return false;
+      }
+      
+      // Filter by type
+      if (invoiceType !== 'semua' && invoice.sumber_dana.toLowerCase() !== invoiceType) {
+        return false;
+      }
+      
+      return true;
+    })
+    .sort((a, b) => {
+      // Sort by selected field
+      if (sortBy === 'tanggal') {
+        const dateA = new Date(a.timestamp);
+        const dateB = new Date(b.timestamp);
+        return sortOrder === 'terbaru' ? dateB.getTime() - dateA.getTime() : dateA.getTime() - dateB.getTime();
+      } else if (sortBy === 'no_faktur') {
+        return sortOrder === 'terbaru' ? b.no_faktur.localeCompare(a.no_faktur) : a.no_faktur.localeCompare(b.no_faktur);
+      } else if (sortBy === 'total') {
+        const totalA = parseFloat(a.total.replace(/[^\d]/g, ''));
+        const totalB = parseFloat(b.total.replace(/[^\d]/g, ''));
+        return sortOrder === 'terbaru' ? totalB - totalA : totalA - totalB;
+      }
+      return 0;
+    });
+
+  const handleViewInvoice = (invoice: InvoiceHistoryItem) => {
+    setSelectedInvoice(invoice);
+    setPreviewOpen(true);
+  };
+
+  const getInvoicePreviewData = (invoice: InvoiceHistoryItem) => {
+    return {
+      invoiceNumber: invoice.no_faktur,
+      date: invoice.tanggal,
+      recipient: invoice.recipient,
+      items: invoice.items,
+      totalBeforeTax: invoice.summary.subtotal,
+      ppnAmount: invoice.summary.totalPPN,
+      pphAmount: invoice.summary.totalPPH,
+      grandTotal: invoice.summary.total,
+      activityName: invoice.kegiatan,
+      accountCode: invoice.accountCode
+    };
+  };
 
   return (
     <Layout title="Riwayat Faktur">
@@ -42,12 +105,19 @@ const RiwayatFaktur = () => {
           <div className="grid grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Kata Kunci</label>
-              <Input placeholder="Cari faktur..." />
+              <Input 
+                placeholder="Cari faktur..." 
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+              />
             </div>
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Tipe Faktur</label>
-              <Select defaultValue="semua">
+              <Select 
+                defaultValue={invoiceType}
+                onValueChange={(value) => setInvoiceType(value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Semua" />
                 </SelectTrigger>
@@ -61,7 +131,10 @@ const RiwayatFaktur = () => {
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Urutkan Berdasarkan</label>
-              <Select defaultValue="tanggal">
+              <Select 
+                defaultValue={sortBy}
+                onValueChange={(value) => setSortBy(value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Tanggal" />
                 </SelectTrigger>
@@ -75,7 +148,10 @@ const RiwayatFaktur = () => {
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Arah Urutan</label>
-              <Select defaultValue="terbaru">
+              <Select 
+                defaultValue={sortOrder}
+                onValueChange={(value) => setSortOrder(value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Terbaru Dulu" />
                 </SelectTrigger>
@@ -105,35 +181,61 @@ const RiwayatFaktur = () => {
               </tr>
             </thead>
             <tbody>
-              {fakturData.map((faktur, index) => (
-                <tr key={index}>
-                  <td className="table-cell">{faktur.no_faktur}</td>
-                  <td className="table-cell">{faktur.tanggal}</td>
-                  <td className="table-cell">{faktur.sumber_dana}</td>
-                  <td className="table-cell">{faktur.kegiatan}</td>
-                  <td className="table-cell font-medium">{faktur.total}</td>
-                  <td className="table-cell">
-                    <div className="flex space-x-1">
-                      <Button size="sm" variant="ghost">
-                        <Edit size={16} className="text-blue-600" />
-                      </Button>
-                      <Button size="sm" variant="ghost">
-                        <Eye size={16} className="text-green-600" />
-                      </Button>
-                      <Button size="sm" variant="ghost">
-                        <FileText size={16} className="text-gray-600" />
-                      </Button>
-                      <Button size="sm" variant="ghost">
-                        <Printer size={16} className="text-gray-600" />
-                      </Button>
-                    </div>
+              {filteredInvoices.length > 0 ? (
+                filteredInvoices.map((faktur, index) => (
+                  <tr key={index}>
+                    <td className="table-cell">{faktur.no_faktur}</td>
+                    <td className="table-cell">{faktur.tanggal}</td>
+                    <td className="table-cell">{faktur.sumber_dana}</td>
+                    <td className="table-cell">{faktur.kegiatan}</td>
+                    <td className="table-cell font-medium">{faktur.total}</td>
+                    <td className="table-cell">
+                      <div className="flex space-x-1">
+                        <Button size="sm" variant="ghost">
+                          <Edit size={16} className="text-blue-600" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => handleViewInvoice(faktur)}>
+                          <Eye size={16} className="text-green-600" />
+                        </Button>
+                        <Button size="sm" variant="ghost">
+                          <FileText size={16} className="text-gray-600" />
+                        </Button>
+                        <Button size="sm" variant="ghost">
+                          <Printer size={16} className="text-gray-600" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={6} className="table-cell text-center py-8 text-gray-500">
+                    Belum ada data faktur tersimpan
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
       </Card>
+
+      {/* Invoice Preview Dialog */}
+      {selectedInvoice && (
+        <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Detail Faktur</DialogTitle>
+            </DialogHeader>
+            <div className="p-4">
+              <InvoicePreview data={getInvoicePreviewData(selectedInvoice)} />
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setPreviewOpen(false)}>Tutup</Button>
+              <Button onClick={() => window.print()}>Cetak</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </Layout>
   );
 };

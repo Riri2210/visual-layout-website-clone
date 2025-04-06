@@ -18,6 +18,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatCurrency, generateInvoiceNumber, calculatePPN, calculatePPH, saveInvoiceToHistory } from '@/lib/formatUtils';
+import InvoicePreview from '@/components/InvoicePreview';
+import { useNavigate } from 'react-router-dom';
 
 interface Item {
   id: string;
@@ -47,31 +50,19 @@ interface InvoiceData {
 
 const calculateNetto = (item: Omit<Item, 'netto'>): number => {
   const subtotal = item.quantity * item.unitPrice;
-  const ppnAmount = item.ppn ? subtotal * 0.11 : 0;
   
-  const pphAmount = item.pph && item.pphPercentage 
-    ? subtotal * parseFloat(item.pphPercentage.replace('%', '')) / 100 
-    : (item.pph ? subtotal * 0.02 : 0);
+  // Use new PPN formula if PPN is enabled
+  const ppnAmount = item.ppn ? calculatePPN(subtotal) : 0;
+  
+  // Use new PPH formula if PPH is enabled
+  let pphPercentageValue = 0;
+  if (item.pph && item.pphPercentage) {
+    pphPercentageValue = parseFloat(item.pphPercentage.replace('%', ''));
+  }
+  
+  const pphAmount = item.pph ? calculatePPH(subtotal, ppnAmount, pphPercentageValue) : 0;
   
   return subtotal + ppnAmount - pphAmount;
-};
-
-const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat('id-ID', { 
-    style: 'currency', 
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(amount);
-};
-
-const generateInvoiceNumber = (): string => {
-  const currentDate = new Date();
-  const year = currentDate.getFullYear();
-  const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-  const day = String(currentDate.getDate()).padStart(2, '0');
-  
-  return `F.${year}Bulan${month}Tanggal${day}`;
 };
 
 const getMonthName = (monthNumber: number): string => {
@@ -228,6 +219,8 @@ const InvoicePreview: React.FC<{ data: InvoiceData }> = ({ data }) => {
 
 const BuatBOP = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  
   const [invoiceInfo, setInvoiceInfo] = useState({
     fundSource: 'bop',
     activityDate: new Date().toISOString().split('T')[0],
@@ -273,8 +266,21 @@ const BuatBOP = () => {
 
   const calculateSummary = (items: Item[]) => {
     const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
-    const totalPPN = items.reduce((sum, item) => sum + (item.ppn ? item.quantity * item.unitPrice * 0.11 : 0), 0);
-    const totalPPH = items.reduce((sum, item) => sum + (item.pph ? item.quantity * item.unitPrice * 0.02 : 0), 0);
+    
+    // Calculate PPN using the new formula
+    const totalPPN = items.reduce((sum, item) => {
+      if (!item.ppn) return sum;
+      return sum + calculatePPN(item.quantity * item.unitPrice);
+    }, 0);
+    
+    // Calculate PPH using the new formula
+    const totalPPH = items.reduce((sum, item) => {
+      if (!item.pph) return sum;
+      const itemSubtotal = item.quantity * item.unitPrice;
+      const itemPPN = item.ppn ? calculatePPN(itemSubtotal) : 0;
+      const pphPercentage = item.pphPercentage ? parseFloat(item.pphPercentage.replace('%', '')) : 2;
+      return sum + calculatePPH(itemSubtotal, itemPPN, pphPercentage);
+    }, 0);
     
     // We're keeping discount and administration at 0 for now
     const total = subtotal + totalPPN - totalPPH;
@@ -408,14 +414,38 @@ const BuatBOP = () => {
       return;
     }
     
-    // In a real app, you'd send this data to your backend
+    // Create invoice data object
+    const invoiceNumber = generateInvoiceNumber();
+    const currentDate = new Date();
+    
+    const invoiceData = {
+      no_faktur: invoiceNumber,
+      tanggal: `${currentDate.getDate()} ${getMonthName(currentDate.getMonth() + 1)} ${currentDate.getFullYear()}`,
+      sumber_dana: invoiceInfo.fundSource.toUpperCase(),
+      kegiatan: invoiceInfo.activityName,
+      total: formatCurrency(summary.total),
+      items,
+      summary,
+      accountCode: invoiceInfo.accountCode,
+      recipient: invoiceInfo.recipient,
+      activityDate: invoiceInfo.activityDate
+    };
+    
+    // Save invoice data to history
+    saveInvoiceToHistory(invoiceData);
+    
     toast({
       title: "Faktur Dibuat",
-      description: "Faktur BOP telah berhasil dibuat dan disimpan"
+      description: "Faktur BOP telah berhasil dibuat dan disimpan ke riwayat faktur"
     });
 
     // Open the preview after creating
     setPreviewOpen(true);
+    
+    // After a short delay, navigate to the invoice history page
+    setTimeout(() => {
+      navigate('/riwayat-faktur');
+    }, 2500);
   };
 
   const getInvoicePreviewData = () => {
