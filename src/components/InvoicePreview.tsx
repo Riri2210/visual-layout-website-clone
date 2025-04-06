@@ -25,6 +25,7 @@ interface InvoiceData {
   grandTotal: number;
   activityName: string;
   accountCode: string;
+  administrationAmount: number;
 }
 
 interface InvoicePreviewProps {
@@ -146,7 +147,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data }) => {
           <table className="w-full border-collapse">
             <tbody>
               <tr>
-                <td className="p-2 text-right">Total Sebelum PPN</td>
+                <td className="p-2 text-right">Bruto</td>
                 <td className="border border-black p-2 w-32 text-right">{formatCurrency(data.totalBeforeTax).replace('Rp\u00A0', 'Rp ')}</td>
               </tr>
               <tr>
@@ -158,7 +159,23 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data }) => {
                 <td className="border border-black p-2 text-right">{formatCurrency(data.pphAmount).replace('Rp\u00A0', 'Rp ')}</td>
               </tr>
               <tr>
-                <td className="p-2 text-right">Grand Total</td>
+                <td className="p-2 text-right">Admin (4% + 1%)</td>
+                <td className="border border-black p-2 text-right">{formatCurrency(data.administrationAmount).replace('Rp\u00A0', 'Rp ')}</td>
+              </tr>
+              <tr>
+                <td className="p-2 text-right">Netto</td>
+                <td className="border border-black p-2 text-right">{formatCurrency(data.grandTotal).replace('Rp\u00A0', 'Rp ')}</td>
+              </tr>
+              <tr>
+                <td className="p-2 text-right">4%</td>
+                <td className="border border-black p-2 text-right">{formatCurrency(data.totalBeforeTax * 0.04).replace('Rp\u00A0', 'Rp ')}</td>
+              </tr>
+              <tr>
+                <td className="p-2 text-right">1%</td>
+                <td className="border border-black p-2 text-right">{formatCurrency(data.totalBeforeTax * 0.01).replace('Rp\u00A0', 'Rp ')}</td>
+              </tr>
+              <tr>
+                <td className="p-2 text-right">Sekolah</td>
                 <td className="border border-black p-2 text-right">{formatCurrency(data.grandTotal).replace('Rp\u00A0', 'Rp ')}</td>
               </tr>
             </tbody>

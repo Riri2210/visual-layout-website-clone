@@ -31,6 +31,11 @@ export const calculatePPH = (totalPrice: number, ppn: number, pphPercentage: num
   return baseAmount * (pphPercentage / 100);
 };
 
+// Function to calculate administration fee (4% + 1%)
+export const calculateAdministration = (totalPrice: number): number => {
+  return totalPrice * 0.05; // 4% + 1% = 5%
+};
+
 // Function to save invoice data to local storage for Riwayat Faktur
 export const saveInvoiceToHistory = (invoice: any) => {
   // Get existing invoice history

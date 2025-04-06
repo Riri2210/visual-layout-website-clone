@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Trash2, Eye, Save, FileText } from 'lucide-react';
-import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -18,7 +18,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatCurrency, generateInvoiceNumber, calculatePPN, calculatePPH, saveInvoiceToHistory } from '@/lib/formatUtils';
+import { 
+  formatCurrency, 
+  generateInvoiceNumber, 
+  calculatePPN, 
+  calculatePPH, 
+  saveInvoiceToHistory,
+  calculateAdministration 
+} from '@/lib/formatUtils';
 import InvoicePreview from '@/components/InvoicePreview';
 import { useNavigate } from 'react-router-dom';
 
@@ -46,6 +53,7 @@ interface InvoiceData {
   grandTotal: number;
   activityName: string;
   accountCode: string;
+  administrationAmount: number;
 }
 
 const calculateNetto = (item: Omit<Item, 'netto'>): number => {
@@ -72,8 +80,6 @@ const getMonthName = (monthNumber: number): string => {
   ];
   return months[monthNumber - 1];
 };
-
-// Removing the local InvoicePreview component since we're importing it from @/components/InvoicePreview
 
 const BuatBOP = () => {
   const { toast } = useToast();
@@ -106,14 +112,12 @@ const BuatBOP = () => {
     subtotal: 0,
     totalPPN: 0,
     totalPPH: 0,
-    discount: 0,
     administration: 0,
     total: 0
   });
 
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setInvoiceInfo(prev => ({ ...prev, [name]: value }));
@@ -141,15 +145,17 @@ const BuatBOP = () => {
       return sum + calculatePPH(itemSubtotal, itemPPN, pphPercentage);
     }, 0);
     
-    // We're keeping discount and administration at 0 for now
-    const total = subtotal + totalPPN - totalPPH;
+    // Calculate administration fee (4% + 1%)
+    const administration = calculateAdministration(subtotal);
+    
+    // Calculate total (now called Netto)
+    const total = subtotal + totalPPN - totalPPH + administration;
     
     return {
       subtotal,
       totalPPN,
       totalPPH,
-      discount: 0,
-      administration: 0,
+      administration,
       total
     };
   };
@@ -316,6 +322,7 @@ const BuatBOP = () => {
       totalBeforeTax: summary.subtotal,
       ppnAmount: summary.totalPPN,
       pphAmount: summary.totalPPH,
+      administrationAmount: summary.administration,
       grandTotal: summary.total,
       activityName: invoiceInfo.activityName,
       accountCode: invoiceInfo.accountCode || '15291/PK.01.01'
@@ -529,7 +536,7 @@ const BuatBOP = () => {
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2">
               <div className="flex justify-between py-2">
-                <span className="font-medium">Subtotal</span>
+                <span className="font-medium">Bruto</span>
                 <span>{formatCurrency(summary.subtotal)}</span>
               </div>
               <div className="flex justify-between py-2">
@@ -541,15 +548,11 @@ const BuatBOP = () => {
                 <span>{formatCurrency(summary.totalPPH)}</span>
               </div>
               <div className="flex justify-between py-2">
-                <span className="font-medium">Diskon</span>
-                <span>{formatCurrency(summary.discount)}</span>
-              </div>
-              <div className="flex justify-between py-2">
-                <span className="font-medium">Administrasi</span>
+                <span className="font-medium">Admin (4% + 1%)</span>
                 <span>{formatCurrency(summary.administration)}</span>
               </div>
               <div className="flex justify-between py-2 border-t border-dashed">
-                <span className="text-lg font-semibold">Total</span>
+                <span className="text-lg font-semibold">Netto</span>
                 <span className="text-lg font-semibold">{formatCurrency(summary.total)}</span>
               </div>
             </div>
