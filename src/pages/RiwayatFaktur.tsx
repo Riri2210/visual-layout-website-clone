@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Card } from '@/components/ui/card';
@@ -34,7 +33,6 @@ const RiwayatFaktur = () => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceHistoryItem | null>(null);
 
-  // Load invoice data from localStorage on component mount
   useEffect(() => {
     const storedInvoices = localStorage.getItem('invoiceHistory');
     if (storedInvoices) {
@@ -43,16 +41,13 @@ const RiwayatFaktur = () => {
     }
   }, []);
 
-  // Filter and sort invoices based on user selection
   const filteredInvoices = fakturData
     .filter(invoice => {
-      // Filter by keyword
       if (searchKeyword && !invoice.kegiatan.toLowerCase().includes(searchKeyword.toLowerCase()) && 
           !invoice.no_faktur.toLowerCase().includes(searchKeyword.toLowerCase())) {
         return false;
       }
       
-      // Filter by type
       if (invoiceType !== 'semua' && invoice.sumber_dana.toLowerCase() !== invoiceType) {
         return false;
       }
@@ -60,7 +55,6 @@ const RiwayatFaktur = () => {
       return true;
     })
     .sort((a, b) => {
-      // Sort by selected field
       if (sortBy === 'tanggal') {
         const dateA = new Date(a.timestamp);
         const dateB = new Date(b.timestamp);
@@ -89,6 +83,7 @@ const RiwayatFaktur = () => {
       totalBeforeTax: invoice.summary.subtotal,
       ppnAmount: invoice.summary.totalPPN,
       pphAmount: invoice.summary.totalPPH,
+      administrationAmount: invoice.summary.administration,
       grandTotal: invoice.summary.total,
       activityName: invoice.kegiatan,
       accountCode: invoice.accountCode
@@ -97,7 +92,6 @@ const RiwayatFaktur = () => {
 
   return (
     <Layout title="Riwayat Faktur">
-      {/* Filter Section */}
       <Card className="mb-6">
         <div className="p-6">
           <h2 className="text-lg font-medium mb-4">Filter dan Pencarian</h2>
@@ -165,7 +159,6 @@ const RiwayatFaktur = () => {
         </div>
       </Card>
       
-      {/* Result Table */}
       <h2 className="text-lg font-medium mb-4">Daftar Faktur</h2>
       <Card>
         <div className="overflow-x-auto">
@@ -219,7 +212,6 @@ const RiwayatFaktur = () => {
         </div>
       </Card>
 
-      {/* Invoice Preview Dialog */}
       {selectedInvoice && (
         <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
