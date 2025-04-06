@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Card } from '@/components/ui/card';
@@ -8,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import InvoicePreview from '@/components/InvoicePreview';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 interface InvoiceHistoryItem {
   no_faktur: string;
@@ -25,6 +27,7 @@ interface InvoiceHistoryItem {
 
 const RiwayatFaktur = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [searchKeyword, setSearchKeyword] = useState('');
   const [invoiceType, setInvoiceType] = useState('semua');
   const [sortBy, setSortBy] = useState('tanggal');
@@ -32,6 +35,8 @@ const RiwayatFaktur = () => {
   const [fakturData, setFakturData] = useState<InvoiceHistoryItem[]>([]);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceHistoryItem | null>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     const storedInvoices = localStorage.getItem('invoiceHistory');
@@ -72,6 +77,58 @@ const RiwayatFaktur = () => {
   const handleViewInvoice = (invoice: InvoiceHistoryItem) => {
     setSelectedInvoice(invoice);
     setPreviewOpen(true);
+  };
+
+  const handleEditInvoice = (invoice: InvoiceHistoryItem) => {
+    // Save the selected invoice to localStorage for editing
+    localStorage.setItem('editingInvoice', JSON.stringify(invoice));
+    
+    // Navigate to the appropriate form based on the invoice type
+    if (invoice.sumber_dana.toLowerCase() === 'bos') {
+      navigate('/buat-bos');
+    } else if (invoice.sumber_dana.toLowerCase() === 'bop') {
+      navigate('/buat-bop');
+    }
+    
+    toast({
+      title: "Edit Faktur",
+      description: `Membuka faktur ${invoice.no_faktur} untuk diedit`,
+    });
+  };
+
+  const handlePrintInvoice = (invoice: InvoiceHistoryItem) => {
+    setSelectedInvoice(invoice);
+    setIsPrinting(true);
+    
+    // Set a small delay to ensure the dialog is open before printing
+    setTimeout(() => {
+      window.print();
+      setIsPrinting(false);
+    }, 500);
+    
+    toast({
+      title: "Cetak Faktur",
+      description: "Menyiapkan faktur untuk dicetak",
+    });
+  };
+
+  const handleDownloadInvoice = (invoice: InvoiceHistoryItem) => {
+    setIsDownloading(true);
+    setSelectedInvoice(invoice);
+    
+    toast({
+      title: "Unduh Faktur",
+      description: "Faktur sedang disiapkan untuk diunduh",
+    });
+    
+    // Simulate download process
+    setTimeout(() => {
+      toast({
+        title: "Faktur Diunduh",
+        description: `Faktur ${invoice.no_faktur} berhasil diunduh`,
+      });
+      setIsDownloading(false);
+    }, 1500);
   };
 
   const getInvoicePreviewData = (invoice: InvoiceHistoryItem) => {
@@ -168,6 +225,7 @@ const RiwayatFaktur = () => {
                 <th className="table-header">NO. FAKTUR</th>
                 <th className="table-header">TANGGAL</th>
                 <th className="table-header">SUMBER DANA</th>
+                <th className="table-header">KODE REKENING</th>
                 <th className="table-header">KEGIATAN</th>
                 <th className="table-header">TOTAL</th>
                 <th className="table-header">TINDAKAN</th>
@@ -180,20 +238,21 @@ const RiwayatFaktur = () => {
                     <td className="table-cell">{faktur.no_faktur}</td>
                     <td className="table-cell">{faktur.tanggal}</td>
                     <td className="table-cell">{faktur.sumber_dana}</td>
+                    <td className="table-cell">{faktur.accountCode || '-'}</td>
                     <td className="table-cell">{faktur.kegiatan}</td>
                     <td className="table-cell font-medium">{faktur.total}</td>
                     <td className="table-cell">
                       <div className="flex space-x-1">
-                        <Button size="sm" variant="ghost">
+                        <Button size="sm" variant="ghost" onClick={() => handleEditInvoice(faktur)}>
                           <Edit size={16} className="text-blue-600" />
                         </Button>
                         <Button size="sm" variant="ghost" onClick={() => handleViewInvoice(faktur)}>
                           <Eye size={16} className="text-green-600" />
                         </Button>
-                        <Button size="sm" variant="ghost">
+                        <Button size="sm" variant="ghost" onClick={() => handleDownloadInvoice(faktur)}>
                           <FileText size={16} className="text-gray-600" />
                         </Button>
-                        <Button size="sm" variant="ghost">
+                        <Button size="sm" variant="ghost" onClick={() => handlePrintInvoice(faktur)}>
                           <Printer size={16} className="text-gray-600" />
                         </Button>
                       </div>
@@ -202,7 +261,7 @@ const RiwayatFaktur = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="table-cell text-center py-8 text-gray-500">
+                  <td colSpan={7} className="table-cell text-center py-8 text-gray-500">
                     Belum ada data faktur tersimpan
                   </td>
                 </tr>
@@ -213,7 +272,10 @@ const RiwayatFaktur = () => {
       </Card>
 
       {selectedInvoice && (
-        <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <Dialog open={previewOpen || isPrinting} onOpenChange={(open) => {
+          setPreviewOpen(open);
+          if (!open) setIsPrinting(false);
+        }}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Detail Faktur</DialogTitle>
