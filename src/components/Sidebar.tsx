@@ -11,19 +11,10 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarProvider,
   useSidebar
 } from '@/components/ui/sidebar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from './ui/button';
-
-const SidebarWrapper = ({ children }: { children: React.ReactNode }) => {
-  return (
-    <SidebarProvider>
-      {children}
-    </SidebarProvider>
-  );
-};
 
 const SidebarToggle = () => {
   const { toggleSidebar, state } = useSidebar();
@@ -65,44 +56,42 @@ const Sidebar = () => {
   ];
 
   return (
-    <SidebarWrapper>
-      <ShadcnSidebar className="border-r">
-        <SidebarHeader className="flex items-center justify-center py-4 relative">
-          <Logo />
-          <SidebarToggle />
-        </SidebarHeader>
-        
-        <SidebarContent>
-          {menuItems.map((section, index) => (
-            <div key={index} className="mb-4">
-              <div className="px-4 py-2 text-xs tracking-wider text-sidebar-foreground/70">
-                {section.section}
-              </div>
-              
-              <SidebarMenu>
-                {section.items.map((item, idx) => (
-                  <SidebarMenuItem key={idx}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={location.pathname === item.path}
-                      tooltip={item.title}
-                    >
-                      <Link to={item.path} className={cn(
-                        "w-full",
-                        location.pathname === item.path && "font-medium"
-                      )}>
-                        {item.icon}
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
+    <ShadcnSidebar className="border-r">
+      <SidebarHeader className="flex items-center justify-center py-4 relative">
+        <Logo />
+        <SidebarToggle />
+      </SidebarHeader>
+      
+      <SidebarContent>
+        {menuItems.map((section, index) => (
+          <div key={index} className="mb-4">
+            <div className="px-4 py-2 text-xs tracking-wider text-sidebar-foreground/70">
+              {section.section}
             </div>
-          ))}
-        </SidebarContent>
-      </ShadcnSidebar>
-    </SidebarWrapper>
+            
+            <SidebarMenu>
+              {section.items.map((item, idx) => (
+                <SidebarMenuItem key={idx}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location.pathname === item.path}
+                    tooltip={item.title}
+                  >
+                    <Link to={item.path} className={cn(
+                      "w-full",
+                      location.pathname === item.path && "font-medium"
+                    )}>
+                      {item.icon}
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </div>
+        ))}
+      </SidebarContent>
+    </ShadcnSidebar>
   );
 };
 
