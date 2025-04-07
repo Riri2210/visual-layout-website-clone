@@ -145,8 +145,10 @@ const BuatBOP = () => {
       return sum + calculatePPH(itemSubtotal, itemPPN, pphPercentage);
     }, 0);
     
-    // Calculate administration fee (4% + 1%)
-    const administration = calculateAdministration(subtotal);
+    // Calculate administration fee (4% + 1%) separately
+    const adminFourPercent = subtotal * 0.04;
+    const adminOnePercent = subtotal * 0.01;
+    const administration = adminFourPercent + adminOnePercent;
     
     // Calculate total (now called Netto)
     const total = subtotal + totalPPN - totalPPH + administration;
@@ -155,6 +157,8 @@ const BuatBOP = () => {
       subtotal,
       totalPPN,
       totalPPH,
+      adminFourPercent,
+      adminOnePercent,
       administration,
       total
     };
@@ -548,7 +552,15 @@ const BuatBOP = () => {
                 <span>{formatCurrency(summary.totalPPH)}</span>
               </div>
               <div className="flex justify-between py-2">
-                <span className="font-medium">Admin (4% + 1%)</span>
+                <span className="font-medium">4%</span>
+                <span>{formatCurrency(summary.adminFourPercent)}</span>
+              </div>
+              <div className="flex justify-between py-2">
+                <span className="font-medium">1%</span>
+                <span>{formatCurrency(summary.adminOnePercent)}</span>
+              </div>
+              <div className="flex justify-between py-2">
+                <span className="font-medium">Admin</span>
                 <span>{formatCurrency(summary.administration)}</span>
               </div>
               <div className="flex justify-between py-2 border-t border-dashed">
