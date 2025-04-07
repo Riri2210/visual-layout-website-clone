@@ -33,6 +33,10 @@ interface InvoicePreviewProps {
 }
 
 const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data }) => {
+  // Calculate 4% and 1% separately from the totalBeforeTax
+  const adminFourPercent = data.totalBeforeTax * 0.04;
+  const adminOnePercent = data.totalBeforeTax * 0.01;
+  
   return (
     <div className="bg-white w-full p-8 shadow-lg border rounded-md print:shadow-none">
       {/* Header */}
@@ -159,20 +163,20 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data }) => {
                 <td className="border border-black p-2 text-right">{formatCurrency(data.pphAmount).replace('Rp\u00A0', 'Rp ')}</td>
               </tr>
               <tr>
-                <td className="p-2 text-right">Admin (4% + 1%)</td>
+                <td className="p-2 text-right">4%</td>
+                <td className="border border-black p-2 text-right">{formatCurrency(adminFourPercent).replace('Rp\u00A0', 'Rp ')}</td>
+              </tr>
+              <tr>
+                <td className="p-2 text-right">1%</td>
+                <td className="border border-black p-2 text-right">{formatCurrency(adminOnePercent).replace('Rp\u00A0', 'Rp ')}</td>
+              </tr>
+              <tr>
+                <td className="p-2 text-right">Admin</td>
                 <td className="border border-black p-2 text-right">{formatCurrency(data.administrationAmount).replace('Rp\u00A0', 'Rp ')}</td>
               </tr>
               <tr>
                 <td className="p-2 text-right">Netto</td>
                 <td className="border border-black p-2 text-right">{formatCurrency(data.grandTotal).replace('Rp\u00A0', 'Rp ')}</td>
-              </tr>
-              <tr>
-                <td className="p-2 text-right">4%</td>
-                <td className="border border-black p-2 text-right">{formatCurrency(data.totalBeforeTax * 0.04).replace('Rp\u00A0', 'Rp ')}</td>
-              </tr>
-              <tr>
-                <td className="p-2 text-right">1%</td>
-                <td className="border border-black p-2 text-right">{formatCurrency(data.totalBeforeTax * 0.01).replace('Rp\u00A0', 'Rp ')}</td>
               </tr>
               <tr>
                 <td className="p-2 text-right">Sekolah</td>
