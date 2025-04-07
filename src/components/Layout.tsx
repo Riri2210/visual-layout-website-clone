@@ -2,6 +2,7 @@
 import React from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import { SidebarInset, SidebarTrigger } from './ui/sidebar';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,15 +11,18 @@ interface LayoutProps {
 
 const Layout = ({ children, title }: LayoutProps) => {
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen w-full">
       <Sidebar />
       
-      <div className="flex-1 pl-64">
-        <main className="p-6">
-          <Header title={title} />
+      <SidebarInset className="relative flex-1">
+        <div className="p-4 md:p-6">
+          <div className="flex items-center mb-6">
+            <SidebarTrigger className="mr-2 md:hidden" />
+            <Header title={title} />
+          </div>
           {children}
-        </main>
-      </div>
+        </div>
+      </SidebarInset>
     </div>
   );
 };

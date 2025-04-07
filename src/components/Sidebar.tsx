@@ -1,12 +1,52 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Settings, FileText, ClipboardList, School, LogOut } from 'lucide-react';
+import { LayoutDashboard, Settings, FileText, ClipboardList, School, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import Logo from './Logo';
 import { cn } from '@/lib/utils';
+import {
+  Sidebar as ShadcnSidebar,
+  SidebarContent,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarProvider,
+  useSidebar
+} from '@/components/ui/sidebar';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Button } from './ui/button';
+
+const SidebarWrapper = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <SidebarProvider>
+      {children}
+    </SidebarProvider>
+  );
+};
+
+const SidebarToggle = () => {
+  const { toggleSidebar, state } = useSidebar();
+  
+  return (
+    <Button 
+      variant="ghost" 
+      size="icon" 
+      onClick={toggleSidebar} 
+      className="absolute top-4 -right-10 z-30 hidden md:flex"
+    >
+      {state === 'collapsed' ? (
+        <PanelLeftOpen size={20} />
+      ) : (
+        <PanelLeftClose size={20} />
+      )}
+    </Button>
+  );
+};
 
 const Sidebar = () => {
   const location = useLocation();
+  const isMobile = useIsMobile();
   
   const menuItems = [
     { section: 'MENU UTAMA', items: [
@@ -25,33 +65,44 @@ const Sidebar = () => {
   ];
 
   return (
-    <div className="h-screen w-64 flex flex-col bg-sidebar fixed">
-      <Logo />
-      
-      <div className="flex-1 flex flex-col overflow-y-auto">
-        {menuItems.map((section, index) => (
-          <div key={index} className="py-2">
-            <div className="px-4 py-2 text-xs tracking-wider text-sidebar-foreground/70">
-              {section.section}
+    <SidebarWrapper>
+      <ShadcnSidebar className="border-r">
+        <SidebarHeader className="flex items-center justify-center py-4 relative">
+          <Logo />
+          <SidebarToggle />
+        </SidebarHeader>
+        
+        <SidebarContent>
+          {menuItems.map((section, index) => (
+            <div key={index} className="mb-4">
+              <div className="px-4 py-2 text-xs tracking-wider text-sidebar-foreground/70">
+                {section.section}
+              </div>
+              
+              <SidebarMenu>
+                {section.items.map((item, idx) => (
+                  <SidebarMenuItem key={idx}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === item.path}
+                      tooltip={item.title}
+                    >
+                      <Link to={item.path} className={cn(
+                        "w-full",
+                        location.pathname === item.path && "font-medium"
+                      )}>
+                        {item.icon}
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
             </div>
-            
-            {section.items.map((item, idx) => (
-              <Link 
-                key={idx} 
-                to={item.path}
-                className={cn(
-                  "sidebar-link", 
-                  location.pathname === item.path && "active-sidebar-link"
-                )}
-              >
-                {item.icon}
-                <span>{item.title}</span>
-              </Link>
-            ))}
-          </div>
-        ))}
-      </div>
-    </div>
+          ))}
+        </SidebarContent>
+      </ShadcnSidebar>
+    </SidebarWrapper>
   );
 };
 
