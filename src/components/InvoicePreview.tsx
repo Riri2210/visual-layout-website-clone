@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { formatCurrency } from '@/lib/formatUtils';
 
@@ -37,9 +38,9 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data }) => {
   const adminOnePercent = data.totalBeforeTax * 0.01;
   
   return (
-    <div className="bg-white w-full p-8 shadow-lg border rounded-md print:shadow-none">
+    <div className="bg-white w-full p-8 shadow-lg border rounded-md print:shadow-none print:border-0">
       {/* Header */}
-      <div className="flex justify-between items-start mb-8">
+      <div className="flex justify-between items-start mb-8 border-b border-black pb-2">
         <div className="flex items-start gap-4">
           <div className="w-20 h-20 bg-blue-500 flex items-center justify-center border-4 border-red-500 relative overflow-hidden">
             <div className="absolute inset-0">
@@ -60,9 +61,9 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data }) => {
             <p className="text-sm">e-mail: cv.harumi.multi.inovasi@gmail.com, Telp. 089503939444</p>
           </div>
         </div>
-        <div className="border border-black px-4 py-2">
-          <h2 className="text-lg font-bold text-center">FAKTUR</h2>
-          <p className="text-sm text-center">{data.invoiceNumber}</p>
+        <div className="text-right">
+          <h2 className="text-lg font-bold">FAKTUR</h2>
+          <p className="text-sm">[{data.invoiceNumber}]</p>
         </div>
       </div>
 
@@ -72,25 +73,33 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data }) => {
           <div className="flex">
             <span className="w-28">Tanggal</span>
             <span className="mr-2">:</span>
-            <span>{data.date}</span>
+            <span>[{data.date}]</span>
           </div>
           <div className="flex">
             <span className="w-28">No. Pesanan</span>
             <span className="mr-2">:</span>
-            <span>{data.accountCode}</span>
+            <span>[{data.accountCode}]</span>
           </div>
           <div className="flex">
             <span className="w-28">No. Surat Jalan</span>
             <span className="mr-2">:</span>
-            <span>{`HMISI.${data.invoiceNumber}`}</span>
+            <span>[{`HMISI.${data.invoiceNumber}`}]</span>
           </div>
         </div>
         <div>
           <div className="flex flex-col">
-            <span>Kepada</span>
-            <span className="font-bold">{`Yth. ${data.recipient}`}</span>
-            <span>di</span>
-            <span>Tempat</span>
+            <div>
+              <span>Kepada</span>
+            </div>
+            <div>
+              <span className="font-bold">Yth. Kepala SDN [{data.recipient}]</span>
+            </div>
+            <div>
+              <span>di</span>
+            </div>
+            <div>
+              <span>Tempat</span>
+            </div>
           </div>
         </div>
       </div>
@@ -99,11 +108,11 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data }) => {
       <table className="w-full mb-4 border-collapse">
         <thead>
           <tr>
-            <th className="border border-black p-2 w-16 text-center">NO</th>
+            <th className="border border-black p-2 text-center">NO</th>
             <th className="border border-black p-2 text-center">NAMA BARANG</th>
-            <th className="border border-black p-2 w-20 text-center">QTY</th>
-            <th className="border border-black p-2 w-32 text-center">HARGA</th>
-            <th className="border border-black p-2 w-32 text-center">JUMLAH</th>
+            <th className="border border-black p-2 text-center">QTY</th>
+            <th className="border border-black p-2 text-center">HARGA</th>
+            <th className="border border-black p-2 text-center">JUMLAH</th>
           </tr>
         </thead>
         <tbody>
@@ -126,13 +135,11 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data }) => {
               <td className="border border-black p-2"></td>
             </tr>
           ))}
-        </tbody>
-        <tfoot>
           <tr>
-            <td colSpan={4} className="border border-black p-2 font-bold text-right">TOTAL</td>
+            <td colSpan={4} className="border border-black p-2 text-right font-bold">TOTAL</td>
             <td className="border border-black p-2 text-right">{formatCurrency(data.totalBeforeTax).replace('Rp\u00A0', 'Rp ')}</td>
           </tr>
-        </tfoot>
+        </tbody>
       </table>
 
       {/* Notes and Totals */}
@@ -143,43 +150,27 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data }) => {
           <p className="text-sm">kecuali sudah perjanjian terlebih dahulu</p>
           <p className="text-sm mt-2">NPWP: 96585333009000</p>
           <p className="text-sm">No. Rek</p>
-          <p className="text-sm">DKI&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: 43608001223</p>
-          <p className="text-sm">BNI&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: 3097878775</p>
+          <p className="text-sm">DKI : 43608001223</p>
+          <p className="text-sm">BNI : 3097878775</p>
         </div>
         <div>
           <table className="w-full border-collapse">
             <tbody>
               <tr>
-                <td className="p-2 text-right">Bruto</td>
-                <td className="border border-black p-2 w-32 text-right">{formatCurrency(data.totalBeforeTax).replace('Rp\u00A0', 'Rp ')}</td>
+                <td className="p-2 text-right">Total Sebelum PPN</td>
+                <td className="border border-black p-2 text-right">Rp -</td>
               </tr>
               <tr>
                 <td className="p-2 text-right">PPN</td>
-                <td className="border border-black p-2 text-right">{formatCurrency(data.ppnAmount).replace('Rp\u00A0', 'Rp ')}</td>
+                <td className="border border-black p-2 text-right">Rp -</td>
               </tr>
               <tr>
                 <td className="p-2 text-right">PPH</td>
-                <td className="border border-black p-2 text-right">{formatCurrency(data.pphAmount).replace('Rp\u00A0', 'Rp ')}</td>
+                <td className="border border-black p-2 text-right">Rp -</td>
               </tr>
               <tr>
-                <td className="p-2 text-right">4%</td>
-                <td className="border border-black p-2 text-right">{formatCurrency(adminFourPercent).replace('Rp\u00A0', 'Rp ')}</td>
-              </tr>
-              <tr>
-                <td className="p-2 text-right">1%</td>
-                <td className="border border-black p-2 text-right">{formatCurrency(adminOnePercent).replace('Rp\u00A0', 'Rp ')}</td>
-              </tr>
-              <tr>
-                <td className="p-2 text-right">Admin</td>
-                <td className="border border-black p-2 text-right">{formatCurrency(data.administrationAmount).replace('Rp\u00A0', 'Rp ')}</td>
-              </tr>
-              <tr>
-                <td className="p-2 text-right">Netto</td>
-                <td className="border border-black p-2 text-right">{formatCurrency(data.grandTotal).replace('Rp\u00A0', 'Rp ')}</td>
-              </tr>
-              <tr>
-                <td className="p-2 text-right">Sekolah</td>
-                <td className="border border-black p-2 text-right">{formatCurrency(data.grandTotal).replace('Rp\u00A0', 'Rp ')}</td>
+                <td className="p-2 text-right">Grand Total</td>
+                <td className="border border-black p-2 text-right">Rp -</td>
               </tr>
             </tbody>
           </table>

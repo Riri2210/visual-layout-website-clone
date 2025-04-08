@@ -336,13 +336,13 @@ const RiwayatFaktur = () => {
           if (!open) setIsPrinting(false);
         }}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
+            <DialogHeader className="print:hidden">
               <DialogTitle>Detail Faktur</DialogTitle>
             </DialogHeader>
             <div className="p-4">
               <InvoicePreview data={getInvoicePreviewData(selectedInvoice)} />
             </div>
-            <div className="mt-4 flex justify-end gap-2">
+            <div className="mt-4 flex justify-end gap-2 print:hidden">
               <Button variant="outline" onClick={() => setPreviewOpen(false)}>Tutup</Button>
               <Button onClick={() => window.print()}>Cetak</Button>
             </div>
