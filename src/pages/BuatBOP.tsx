@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -87,7 +87,8 @@ const BuatBOP = () => {
     activityDate: new Date().toISOString().split('T')[0],
     activityName: '',
     accountCode: '',
-    recipient: 'Kepala SDN BARU 07'
+    recipient: '',
+    transactionNumber: '001'
   });
 
   const [items, setItems] = useState<Item[]>([
@@ -118,6 +119,14 @@ const BuatBOP = () => {
   });
 
   const [previewOpen, setPreviewOpen] = useState(false);
+
+  useEffect(() => {
+    const lastTransactionNumber = localStorage.getItem('lastTransactionNumber');
+    if (lastTransactionNumber) {
+      const nextNumber = (parseInt(lastTransactionNumber) + 1).toString().padStart(3, '0');
+      setInvoiceInfo(prev => ({ ...prev, transactionNumber: nextNumber }));
+    }
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -175,11 +184,16 @@ const BuatBOP = () => {
       ...updatedItem,
     };
 
-    const itemWithoutNetto = {
-      ...newItems[index],
-      ...updatedItem,
-    };
-    newItems[index].netto = calculateNetto(itemWithoutNetto);
+    if (newItems[index].ppn || newItems[index].pph) {
+      const itemSubtotal = newItems[index].quantity * newItems[index].unitPrice;
+      const itemPPN = newItems[index].ppn ? calculatePPN(itemSubtotal) : 0;
+      
+      const pphAmount = newItems[index].pph ? (itemSubtotal - itemPPN) : 0;
+      
+      newItems[index].netto = itemSubtotal - itemPPN - pphAmount;
+    } else {
+      newItems[index].netto = newItems[index].quantity * newItems[index].unitPrice;
+    }
     
     if (updatedItem.quantity !== undefined || updatedItem.unitPrice !== undefined) {
       newItems[index].totalPrice = newItems[index].quantity * newItems[index].unitPrice;
@@ -293,8 +307,11 @@ const BuatBOP = () => {
       summary,
       accountCode: invoiceInfo.accountCode,
       recipient: invoiceInfo.recipient,
-      activityDate: invoiceInfo.activityDate
+      activityDate: invoiceInfo.activityDate,
+      transactionNumber: invoiceInfo.transactionNumber
     };
+    
+    localStorage.setItem('lastTransactionNumber', invoiceInfo.transactionNumber);
     
     saveInvoiceToHistory(invoiceData);
     
@@ -335,7 +352,7 @@ const BuatBOP = () => {
 
       <Card className="mb-6">
         <CardContent className="p-6">
-          <h2 className="text-lg font-medium mb-4">Informasi Faktur</h2>
+          <h2 className="text-lg font-medium mb-4">Jenis Transaksi</h2>
           
           <div className="grid grid-cols-2 gap-6">
             <div>
@@ -378,11 +395,11 @@ const BuatBOP = () => {
             </div>
             
             <div>
-              <Label htmlFor="accountCode">Kode Rekening</Label>
+              <Label htmlFor="accountCode">Nama Kode Rekening</Label>
               <Input 
                 id="accountCode" 
                 name="accountCode"
-                placeholder="Masukkan kode rekening" 
+                placeholder="Masukkan nama kode rekening" 
                 value={invoiceInfo.accountCode} 
                 onChange={handleInputChange}
                 className="mt-1" 
@@ -390,14 +407,25 @@ const BuatBOP = () => {
             </div>
             
             <div>
-              <Label htmlFor="recipient">Penerima</Label>
+              <Label htmlFor="recipient">Nomor Surat Pesanan</Label>
               <Input 
                 id="recipient" 
                 name="recipient"
-                placeholder="Masukkan nama penerima" 
+                placeholder="Masukkan nomor surat pesanan" 
                 value={invoiceInfo.recipient} 
                 onChange={handleInputChange}
                 className="mt-1" 
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="transactionNumber">Nomor Transaksi</Label>
+              <Input 
+                id="transactionNumber" 
+                name="transactionNumber"
+                value={invoiceInfo.transactionNumber} 
+                readOnly
+                className="mt-1 bg-gray-100" 
               />
             </div>
           </div>
