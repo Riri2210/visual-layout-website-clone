@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -59,10 +58,8 @@ interface InvoiceData {
 const calculateNetto = (item: Omit<Item, 'netto'>): number => {
   const subtotal = item.quantity * item.unitPrice;
   
-  // Use new PPN formula if PPN is enabled
   const ppnAmount = item.ppn ? calculatePPN(subtotal) : 0;
   
-  // Use new PPH formula if PPH is enabled
   let pphPercentageValue = 0;
   if (item.pph && item.pphPercentage) {
     pphPercentageValue = parseFloat(item.pphPercentage.replace('%', ''));
@@ -112,6 +109,8 @@ const BuatBOP = () => {
     subtotal: 0,
     totalPPN: 0,
     totalPPH: 0,
+    adminFourPercent: 0,
+    adminOnePercent: 0,
     administration: 0,
     total: 0
   });
@@ -130,13 +129,11 @@ const BuatBOP = () => {
   const calculateSummary = (items: Item[]) => {
     const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
     
-    // Calculate PPN using the new formula
     const totalPPN = items.reduce((sum, item) => {
       if (!item.ppn) return sum;
       return sum + calculatePPN(item.quantity * item.unitPrice);
     }, 0);
     
-    // Calculate PPH using the new formula
     const totalPPH = items.reduce((sum, item) => {
       if (!item.pph) return sum;
       const itemSubtotal = item.quantity * item.unitPrice;
@@ -145,12 +142,10 @@ const BuatBOP = () => {
       return sum + calculatePPH(itemSubtotal, itemPPN, pphPercentage);
     }, 0);
     
-    // Calculate administration fee (4% + 1%) separately
     const adminFourPercent = subtotal * 0.04;
     const adminOnePercent = subtotal * 0.01;
     const administration = adminFourPercent + adminOnePercent;
     
-    // Calculate total (now called Netto)
     const total = subtotal + totalPPN - totalPPH + administration;
     
     return {
@@ -172,21 +167,18 @@ const BuatBOP = () => {
       ...updatedItem,
     };
 
-    // Calculate netto for this specific item
     const itemWithoutNetto = {
       ...newItems[index],
       ...updatedItem,
     };
     newItems[index].netto = calculateNetto(itemWithoutNetto);
     
-    // Auto-calculate total price based on quantity and unit price
     if (updatedItem.quantity !== undefined || updatedItem.unitPrice !== undefined) {
       newItems[index].totalPrice = newItems[index].quantity * newItems[index].unitPrice;
     }
 
     setItems(newItems);
     
-    // Recalculate summary
     const newSummary = calculateSummary(newItems);
     setSummary(newSummary);
   };
@@ -238,7 +230,6 @@ const BuatBOP = () => {
     const newItems = items.filter((_, idx) => idx !== index);
     setItems(newItems);
     
-    // Recalculate summary
     const newSummary = calculateSummary(newItems);
     setSummary(newSummary);
   };
@@ -254,7 +245,6 @@ const BuatBOP = () => {
       summary
     };
     
-    // In a real app, you'd save this to localStorage or a database
     localStorage.setItem('bop-draft', JSON.stringify(draft));
     
     toast({
@@ -264,7 +254,6 @@ const BuatBOP = () => {
   };
 
   const handleCreateInvoice = () => {
-    // Validate form
     if (!invoiceInfo.activityName) {
       toast({
         title: "Validasi Gagal",
@@ -283,7 +272,6 @@ const BuatBOP = () => {
       return;
     }
     
-    // Create invoice data object
     const invoiceNumber = generateInvoiceNumber();
     const currentDate = new Date();
     
@@ -300,7 +288,6 @@ const BuatBOP = () => {
       activityDate: invoiceInfo.activityDate
     };
     
-    // Save invoice data to history
     saveInvoiceToHistory(invoiceData);
     
     toast({
@@ -308,10 +295,8 @@ const BuatBOP = () => {
       description: "Faktur BOP telah berhasil dibuat dan disimpan ke riwayat faktur"
     });
 
-    // Open the preview after creating
     setPreviewOpen(true);
     
-    // After a short delay, navigate to the invoice history page
     setTimeout(() => {
       navigate('/riwayat-faktur');
     }, 2500);
@@ -587,7 +572,6 @@ const BuatBOP = () => {
         </CardContent>
       </Card>
 
-      {/* Invoice Preview Dialog */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
