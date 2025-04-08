@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Card } from '@/components/ui/card';
@@ -10,6 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import InvoicePreview from '@/components/InvoicePreview';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { format, parseISO } from 'date-fns';
+import { id } from 'date-fns/locale';
 
 interface InvoiceHistoryItem {
   no_faktur: string;
@@ -18,11 +20,20 @@ interface InvoiceHistoryItem {
   kegiatan: string;
   total: string;
   items: any[];
-  summary: any;
+  summary: {
+    subtotal: number;
+    totalPPN: number;
+    totalPPH: number;
+    administration: number;
+    adminFourPercent?: number;
+    adminOnePercent?: number;
+    total: number;
+  };
   accountCode: string;
   recipient: string;
   activityDate: string;
   timestamp: string;
+  transactionNumber?: string;
 }
 
 const RiwayatFaktur = () => {
@@ -80,10 +91,8 @@ const RiwayatFaktur = () => {
   };
 
   const handleEditInvoice = (invoice: InvoiceHistoryItem) => {
-    // Save the selected invoice to localStorage for editing
     localStorage.setItem('editingInvoice', JSON.stringify(invoice));
     
-    // Navigate to the appropriate form based on the invoice type
     if (invoice.sumber_dana.toLowerCase() === 'bos') {
       navigate('/buat-bos');
     } else if (invoice.sumber_dana.toLowerCase() === 'bop') {
@@ -100,7 +109,6 @@ const RiwayatFaktur = () => {
     setSelectedInvoice(invoice);
     setIsPrinting(true);
     
-    // Set a small delay to ensure the dialog is open before printing
     setTimeout(() => {
       window.print();
       setIsPrinting(false);
@@ -121,7 +129,6 @@ const RiwayatFaktur = () => {
       description: "Faktur sedang disiapkan untuk diunduh",
     });
     
-    // Simulate download process
     setTimeout(() => {
       toast({
         title: "Faktur Diunduh",
@@ -145,6 +152,30 @@ const RiwayatFaktur = () => {
       activityName: invoice.kegiatan,
       accountCode: invoice.accountCode
     };
+  };
+
+  const generateNomorSuratJalan = (invoice: InvoiceHistoryItem): string => {
+    const activityDate = invoice.activityDate || invoice.tanggal;
+    const datePart = activityDate.replace(/-/g, '');
+    const transactionNumber = invoice.transactionNumber || '001';
+    const schoolCode = "B07";
+    
+    return `HMI.SJ.${datePart}${transactionNumber}${schoolCode}`;
+  };
+
+  const formatDateWithDay = (dateString: string): string => {
+    try {
+      const date = parseISO(dateString);
+      return format(date, 'EEEE, dd MMM yyyy', { locale: id });
+    } catch (error) {
+      return dateString;
+    }
+  };
+
+  const calculateAdminTotal = (invoice: InvoiceHistoryItem): number => {
+    const fourPercent = invoice.summary.adminFourPercent || 0;
+    const onePercent = invoice.summary.adminOnePercent || 0;
+    return fourPercent + onePercent;
   };
 
   return (
@@ -219,55 +250,83 @@ const RiwayatFaktur = () => {
       <h2 className="text-lg font-medium mb-4">Daftar Faktur</h2>
       <Card>
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr>
-                <th className="table-header">NO. FAKTUR</th>
-                <th className="table-header">TANGGAL</th>
-                <th className="table-header">SUMBER DANA</th>
-                <th className="table-header">KODE REKENING</th>
-                <th className="table-header">KEGIATAN</th>
-                <th className="table-header">TOTAL</th>
-                <th className="table-header">TINDAKAN</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>NO. TRANSAKSI</TableHead>
+                <TableHead>NO. FAKTUR</TableHead>
+                <TableHead>NOMOR SURAT JALAN</TableHead>
+                <TableHead>TANGGAL KEGIATAN</TableHead>
+                <TableHead>SUMBER DANA</TableHead>
+                <TableHead>KODE REKENING</TableHead>
+                <TableHead>KEGIATAN</TableHead>
+                <TableHead>GROSS</TableHead>
+                <TableHead>TOTAL VAT</TableHead>
+                <TableHead>TOTAL PPH</TableHead>
+                <TableHead>TOTAL NETTO</TableHead>
+                <TableHead>4%</TableHead>
+                <TableHead>1%</TableHead>
+                <TableHead>ADMIN</TableHead>
+                <TableHead>SCHOOL</TableHead>
+                <TableHead>TOTAL</TableHead>
+                <TableHead>TINDAKAN</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {filteredInvoices.length > 0 ? (
-                filteredInvoices.map((faktur, index) => (
-                  <tr key={index}>
-                    <td className="table-cell">{faktur.no_faktur}</td>
-                    <td className="table-cell">{faktur.tanggal}</td>
-                    <td className="table-cell">{faktur.sumber_dana}</td>
-                    <td className="table-cell">{faktur.accountCode || '-'}</td>
-                    <td className="table-cell">{faktur.kegiatan}</td>
-                    <td className="table-cell font-medium">{faktur.total}</td>
-                    <td className="table-cell">
-                      <div className="flex space-x-1">
-                        <Button size="sm" variant="ghost" onClick={() => handleEditInvoice(faktur)}>
-                          <Edit size={16} className="text-blue-600" />
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => handleViewInvoice(faktur)}>
-                          <Eye size={16} className="text-green-600" />
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => handleDownloadInvoice(faktur)}>
-                          <FileText size={16} className="text-gray-600" />
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => handlePrintInvoice(faktur)}>
-                          <Printer size={16} className="text-gray-600" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                filteredInvoices.map((faktur, index) => {
+                  const netto = faktur.summary.subtotal - faktur.summary.totalPPN - faktur.summary.totalPPH;
+                  const fourPercent = faktur.summary.adminFourPercent || netto * 0.04;
+                  const onePercent = faktur.summary.adminOnePercent || netto * 0.01;
+                  const adminTotal = fourPercent + onePercent;
+                  const school = netto - adminTotal;
+                  
+                  return (
+                    <TableRow key={index}>
+                      <TableCell>{faktur.transactionNumber || '001'}</TableCell>
+                      <TableCell>{faktur.no_faktur}</TableCell>
+                      <TableCell>{generateNomorSuratJalan(faktur)}</TableCell>
+                      <TableCell>{formatDateWithDay(faktur.activityDate || faktur.tanggal)}</TableCell>
+                      <TableCell>{faktur.sumber_dana}</TableCell>
+                      <TableCell>{faktur.accountCode || '-'}</TableCell>
+                      <TableCell>{faktur.kegiatan}</TableCell>
+                      <TableCell>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(faktur.summary.subtotal)}</TableCell>
+                      <TableCell>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(faktur.summary.totalPPN)}</TableCell>
+                      <TableCell>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(faktur.summary.totalPPH)}</TableCell>
+                      <TableCell>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(netto)}</TableCell>
+                      <TableCell>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(fourPercent)}</TableCell>
+                      <TableCell>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(onePercent)}</TableCell>
+                      <TableCell>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(adminTotal)}</TableCell>
+                      <TableCell>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(school)}</TableCell>
+                      <TableCell className="font-medium">{faktur.total}</TableCell>
+                      <TableCell>
+                        <div className="flex space-x-1">
+                          <Button size="sm" variant="ghost" onClick={() => handleEditInvoice(faktur)}>
+                            <Edit size={16} className="text-blue-600" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => handleViewInvoice(faktur)}>
+                            <Eye size={16} className="text-green-600" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => handleDownloadInvoice(faktur)}>
+                            <FileText size={16} className="text-gray-600" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => handlePrintInvoice(faktur)}>
+                            <Printer size={16} className="text-gray-600" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               ) : (
-                <tr>
-                  <td colSpan={7} className="table-cell text-center py-8 text-gray-500">
+                <TableRow>
+                  <TableCell colSpan={17} className="text-center py-8 text-gray-500">
                     Belum ada data faktur tersimpan
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </Card>
 
