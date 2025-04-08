@@ -109,9 +109,11 @@ const BuatBOP = () => {
     subtotal: 0,
     totalPPN: 0,
     totalPPH: 0,
+    totalNetto: 0,
     adminFourPercent: 0,
     adminOnePercent: 0,
     administration: 0,
+    sekolahAmount: 0,
     total: 0
   });
 
@@ -142,19 +144,25 @@ const BuatBOP = () => {
       return sum + calculatePPH(itemSubtotal, itemPPN, pphPercentage);
     }, 0);
     
-    const adminFourPercent = subtotal * 0.04;
-    const adminOnePercent = subtotal * 0.01;
+    const totalNetto = subtotal - totalPPN - totalPPH;
+    
+    const adminFourPercent = totalNetto * 0.04;
+    const adminOnePercent = totalNetto * 0.01;
     const administration = adminFourPercent + adminOnePercent;
     
-    const total = subtotal + totalPPN - totalPPH + administration;
+    const sekolahAmount = totalNetto - administration;
+    
+    const total = sekolahAmount;
     
     return {
       subtotal,
       totalPPN,
       totalPPH,
+      totalNetto,
       adminFourPercent,
       adminOnePercent,
       administration,
+      sekolahAmount,
       total
     };
   };
@@ -536,6 +544,10 @@ const BuatBOP = () => {
                 <span className="font-medium">Total PPh</span>
                 <span>{formatCurrency(summary.totalPPH)}</span>
               </div>
+              <div className="flex justify-between py-2 border-t border-dashed">
+                <span className="font-medium">Total Netto</span>
+                <span>{formatCurrency(summary.totalNetto)}</span>
+              </div>
               <div className="flex justify-between py-2">
                 <span className="font-medium">4%</span>
                 <span>{formatCurrency(summary.adminFourPercent)}</span>
@@ -548,8 +560,12 @@ const BuatBOP = () => {
                 <span className="font-medium">Admin</span>
                 <span>{formatCurrency(summary.administration)}</span>
               </div>
+              <div className="flex justify-between py-2">
+                <span className="font-medium">Sekolah</span>
+                <span>{formatCurrency(summary.sekolahAmount)}</span>
+              </div>
               <div className="flex justify-between py-2 border-t border-dashed">
-                <span className="text-lg font-semibold">Netto</span>
+                <span className="text-lg font-semibold">Total</span>
                 <span className="text-lg font-semibold">{formatCurrency(summary.total)}</span>
               </div>
             </div>
