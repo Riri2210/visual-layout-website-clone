@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import Sidebar from './Sidebar';
+import Sidebar from './sidebar/Sidebar';
 import Header from './Header';
 import { SidebarInset, SidebarTrigger, SidebarProvider, useSidebar } from './ui/sidebar';
 
