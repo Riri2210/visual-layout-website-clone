@@ -9,6 +9,7 @@ import {
   LogOut,
   Globe,
   User,
+  FileCheck
 } from 'lucide-react';
 import { MenuSection } from './SidebarTypes';
 
@@ -28,6 +29,7 @@ export const useSidebarData = (): MenuSection[] => {
         ]
       },
       { title: 'Riwayat Faktur', icon: <ClipboardList size={18} />, path: '/riwayat-faktur' },
+      { title: 'SPJ', icon: <FileCheck size={18} />, path: '/spj' },
     ]},
     { section: 'PENGATURAN', items: [
       { 
