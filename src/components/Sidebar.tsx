@@ -11,7 +11,9 @@ import {
   PanelLeftOpen, 
   ChevronRight, 
   ChevronLeft, 
-  Folder
+  Folder,
+  Globe,
+  User,
 } from 'lucide-react';
 import Logo from './Logo';
 import { cn } from '@/lib/utils';
@@ -75,14 +77,7 @@ const Sidebar = () => {
   const menuItems: MenuSection[] = [
     { section: 'MENU UTAMA', items: [
       { title: 'Dashboard', icon: <LayoutDashboard size={18} />, path: '/' },
-      { 
-        title: 'Pengaturan', 
-        icon: <Settings size={18} />, 
-        children: [
-          { title: 'General', icon: <Settings size={18} />, path: '/pengaturan/general' },
-          { title: 'Akun', icon: <Settings size={18} />, path: '/pengaturan/akun' },
-        ]
-      },
+      { title: 'Identitas Sekolah', icon: <School size={18} />, path: '/identitas-sekolah' },
     ]},
     { section: 'FAKTUR', items: [
       { 
@@ -96,7 +91,14 @@ const Sidebar = () => {
       { title: 'Riwayat Faktur', icon: <ClipboardList size={18} />, path: '/riwayat-faktur' },
     ]},
     { section: 'PENGATURAN', items: [
-      { title: 'Identitas Sekolah', icon: <School size={18} />, path: '/identitas-sekolah' },
+      { 
+        title: 'Pengaturan', 
+        icon: <Settings size={18} />, 
+        children: [
+          { title: 'General', icon: <Globe size={18} />, path: '/pengaturan/general' },
+          { title: 'Akun', icon: <User size={18} />, path: '/pengaturan/akun' },
+        ]
+      },
       { title: 'Keluar', icon: <LogOut size={18} />, path: '/keluar' },
     ]},
   ];

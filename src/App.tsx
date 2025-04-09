@@ -10,6 +10,8 @@ import RiwayatFaktur from "./pages/RiwayatFaktur";
 import BuatBOS from "./pages/BuatBOS";
 import BuatBOP from "./pages/BuatBOP";
 import NotFound from "./pages/NotFound";
+import GeneralSettings from "./pages/GeneralSettings";
+import AccountSettings from "./pages/AccountSettings";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +29,8 @@ const App = () => (
           <Route path="/bos" element={<Navigate to="/buat-bos" replace />} />
           <Route path="/buat-bop" element={<BuatBOP />} />
           <Route path="/bop" element={<Navigate to="/buat-bop" replace />} />
+          <Route path="/pengaturan/general" element={<GeneralSettings />} />
+          <Route path="/pengaturan/akun" element={<AccountSettings />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
