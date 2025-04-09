@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Card } from '@/components/ui/card';
@@ -12,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { generateLetterNumber } from '@/lib/formatUtils';
 
 interface InvoiceHistoryItem {
   no_faktur: string;
@@ -163,6 +165,15 @@ const RiwayatFaktur = () => {
     return `HMI.SJ.${datePart}${transactionNumber}${schoolCode}`;
   };
 
+  const generateNomorSuratPesanan = (invoice: InvoiceHistoryItem): string => {
+    const activityDate = invoice.activityDate || invoice.tanggal;
+    const date = new Date(activityDate);
+    const transactionNumber = invoice.transactionNumber || '001';
+    const schoolCode = "B07";
+    
+    return generateLetterNumber('HMI.P1', date, transactionNumber, schoolCode);
+  };
+
   const formatDateWithDay = (dateString: string): string => {
     try {
       const date = parseISO(dateString);
@@ -256,6 +267,7 @@ const RiwayatFaktur = () => {
                 <TableHead>NO. TRANSAKSI</TableHead>
                 <TableHead>NO. FAKTUR</TableHead>
                 <TableHead>NOMOR SURAT JALAN</TableHead>
+                <TableHead>NOMOR SURAT PESANAN</TableHead>
                 <TableHead>TANGGAL KEGIATAN</TableHead>
                 <TableHead>SUMBER DANA</TableHead>
                 <TableHead>KODE REKENING</TableHead>
@@ -273,7 +285,7 @@ const RiwayatFaktur = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredInvoices.length > 0 ? (
+              {fakturData && fakturData.length > 0 ? (
                 filteredInvoices.map((faktur, index) => {
                   const netto = faktur.summary.subtotal - faktur.summary.totalPPN - faktur.summary.totalPPH;
                   const fourPercent = faktur.summary.adminFourPercent || netto * 0.04;
@@ -286,6 +298,7 @@ const RiwayatFaktur = () => {
                       <TableCell>{faktur.transactionNumber || '001'}</TableCell>
                       <TableCell>{faktur.no_faktur}</TableCell>
                       <TableCell>{generateNomorSuratJalan(faktur)}</TableCell>
+                      <TableCell>{generateNomorSuratPesanan(faktur)}</TableCell>
                       <TableCell>{formatDateWithDay(faktur.activityDate || faktur.tanggal)}</TableCell>
                       <TableCell>{faktur.sumber_dana}</TableCell>
                       <TableCell>{faktur.accountCode || '-'}</TableCell>
@@ -320,7 +333,7 @@ const RiwayatFaktur = () => {
                 })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={17} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={18} className="text-center py-8 text-gray-500">
                     Belum ada data faktur tersimpan
                   </TableCell>
                 </TableRow>
@@ -354,3 +367,4 @@ const RiwayatFaktur = () => {
 };
 
 export default RiwayatFaktur;
+
