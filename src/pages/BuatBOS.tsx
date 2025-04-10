@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -84,6 +83,11 @@ const getDayName = (date: Date): string => {
     'Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'
   ];
   return days[date.getDay()];
+};
+
+const getRomanMonth = (monthNumber: number): string => {
+  const romanMonths = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+  return romanMonths[monthNumber - 1];
 };
 
 const BuatBOS = () => {
@@ -192,12 +196,10 @@ const BuatBOS = () => {
       ...updatedItem,
     };
 
-    // Calculate totalPrice based on quantity and unitPrice
     if (updatedItem.quantity !== undefined || updatedItem.unitPrice !== undefined) {
       newItems[index].totalPrice = newItems[index].quantity * newItems[index].unitPrice;
     }
 
-    // Calculate netto: Harga Total - PPN - PPH
     if (newItems[index].ppn || newItems[index].pph) {
       const itemSubtotal = newItems[index].quantity * newItems[index].unitPrice;
       const itemPPN = newItems[index].ppn ? calculatePPN(itemSubtotal) : 0;
@@ -360,6 +362,13 @@ const BuatBOS = () => {
     };
   };
 
+  const getSuratPesananPlaceholder = () => {
+    const currentDate = new Date();
+    const month = getRomanMonth(currentDate.getMonth() + 1);
+    const year = currentDate.getFullYear();
+    return `ex: 001/PK.01.01/${month}/${year}`;
+  };
+
   return (
     <Layout title="Buat BOS">
       <div className="mb-4">
@@ -428,7 +437,7 @@ const BuatBOS = () => {
               <Input 
                 id="recipient" 
                 name="recipient"
-                placeholder="Masukkan nomor surat pesanan" 
+                placeholder={getSuratPesananPlaceholder()}
                 value={invoiceInfo.recipient} 
                 onChange={handleInputChange}
                 className="mt-1" 

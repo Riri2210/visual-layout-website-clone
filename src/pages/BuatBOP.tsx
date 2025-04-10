@@ -78,6 +78,11 @@ const getMonthName = (monthNumber: number): string => {
   return months[monthNumber - 1];
 };
 
+const getRomanMonth = (monthNumber: number): string => {
+  const romanMonths = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+  return romanMonths[monthNumber - 1];
+};
+
 const BuatBOP = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -343,6 +348,13 @@ const BuatBOP = () => {
     };
   };
 
+  const getSuratPesananPlaceholder = () => {
+    const currentDate = new Date();
+    const month = getRomanMonth(currentDate.getMonth() + 1);
+    const year = currentDate.getFullYear();
+    return `ex: 001/PK.01.01/${month}/${year}`;
+  };
+
   return (
     <Layout title="Buat BOP">
       <div className="mb-4">
@@ -411,7 +423,7 @@ const BuatBOP = () => {
               <Input 
                 id="recipient" 
                 name="recipient"
-                placeholder="Masukkan nomor surat pesanan" 
+                placeholder={getSuratPesananPlaceholder()} 
                 value={invoiceInfo.recipient} 
                 onChange={handleInputChange}
                 className="mt-1" 
