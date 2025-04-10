@@ -37,22 +37,21 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data }) => {
   const adminFourPercent = data.totalBeforeTax * 0.04;
   const adminOnePercent = data.totalBeforeTax * 0.01;
   
+  // Calculate values according to the specified formulas
+  const totalBeforePPN = data.totalBeforeTax - data.ppnAmount - data.pphAmount;
+  const grandTotal = totalBeforePPN + data.ppnAmount + data.pphAmount;
+  
   return (
     <div className="bg-white w-full p-8 shadow-lg border rounded-md print:shadow-none print:border-0">
       {/* Header */}
       <div className="flex justify-between items-start mb-8 border-b border-black pb-2">
         <div className="flex items-start gap-4">
-          <div className="w-20 h-20 bg-blue-500 flex items-center justify-center border-4 border-red-500 relative overflow-hidden">
-            <div className="absolute inset-0">
-              <div className="bg-yellow-400 w-full h-full">
-                <div className="grid grid-cols-3 h-full">
-                  <div className="bg-blue-500"></div>
-                  <div className="bg-red-500"></div>
-                  <div className="bg-blue-500"></div>
-                </div>
-              </div>
-            </div>
-            <span className="text-4xl font-bold text-white z-10">H</span>
+          <div className="w-20 h-20 flex items-center justify-center relative overflow-hidden">
+            <img 
+              src="/lovable-uploads/7e386096-8ee7-48fd-a559-5a534f904fd0.png" 
+              alt="Harumi Logo" 
+              className="w-full h-full object-contain"
+            />
           </div>
           <div>
             <h1 className="text-2xl font-bold">CV. HARUMI MULTI INOVASI</h1>
@@ -63,7 +62,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data }) => {
         </div>
         <div className="text-right">
           <h2 className="text-lg font-bold">FAKTUR</h2>
-          <p className="text-sm">[{data.invoiceNumber}]</p>
+          <p className="text-sm">{data.invoiceNumber}</p>
         </div>
       </div>
 
@@ -73,17 +72,17 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data }) => {
           <div className="flex">
             <span className="w-28">Tanggal</span>
             <span className="mr-2">:</span>
-            <span>[{data.date}]</span>
+            <span>{data.date}</span>
           </div>
           <div className="flex">
             <span className="w-28">No. Pesanan</span>
             <span className="mr-2">:</span>
-            <span>[{data.accountCode}]</span>
+            <span>{data.accountCode}</span>
           </div>
           <div className="flex">
             <span className="w-28">No. Surat Jalan</span>
             <span className="mr-2">:</span>
-            <span>[{`HMISI.${data.invoiceNumber}`}]</span>
+            <span>{`HMISI.${data.invoiceNumber}`}</span>
           </div>
         </div>
         <div>
@@ -92,7 +91,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data }) => {
               <span>Kepada</span>
             </div>
             <div>
-              <span className="font-bold">Yth. Kepala SDN [{data.recipient}]</span>
+              <span className="font-bold">Yth. Kepala SDN {data.recipient}</span>
             </div>
             <div>
               <span>di</span>
@@ -158,19 +157,27 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data }) => {
             <tbody>
               <tr>
                 <td className="p-2 text-right">Total Sebelum PPN</td>
-                <td className="border border-black p-2 text-right">Rp -</td>
+                <td className="border border-black p-2 text-right">
+                  {formatCurrency(totalBeforePPN).replace('Rp\u00A0', 'Rp ')}
+                </td>
               </tr>
               <tr>
-                <td className="p-2 text-right">PPN</td>
-                <td className="border border-black p-2 text-right">Rp -</td>
+                <td className="p-2 text-right">Total PPN</td>
+                <td className="border border-black p-2 text-right">
+                  {formatCurrency(data.ppnAmount).replace('Rp\u00A0', 'Rp ')}
+                </td>
               </tr>
               <tr>
-                <td className="p-2 text-right">PPH</td>
-                <td className="border border-black p-2 text-right">Rp -</td>
+                <td className="p-2 text-right">Total PPH</td>
+                <td className="border border-black p-2 text-right">
+                  {formatCurrency(data.pphAmount).replace('Rp\u00A0', 'Rp ')}
+                </td>
               </tr>
               <tr>
                 <td className="p-2 text-right">Grand Total</td>
-                <td className="border border-black p-2 text-right">Rp -</td>
+                <td className="border border-black p-2 text-right">
+                  {formatCurrency(grandTotal).replace('Rp\u00A0', 'Rp ')}
+                </td>
               </tr>
             </tbody>
           </table>
@@ -178,9 +185,12 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data }) => {
       </div>
 
       {/* Footer */}
-      <div className="mt-8 text-center">
-        <p className="font-bold mb-20">CV. HARUMI MULTI INOVASI</p>
-        <p className="font-bold">Ananda Shafa Rianti</p>
+      <div className="mt-8 grid grid-cols-2">
+        <div></div>
+        <div className="text-center">
+          <p className="font-bold mb-20">CV. HARUMI MULTI INOVASI</p>
+          <p className="font-bold">Ananda Shafa Rianti</p>
+        </div>
       </div>
     </div>
   );
