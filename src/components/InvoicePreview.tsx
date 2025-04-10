@@ -40,6 +40,13 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data }) => {
   // Calculate values according to the specified formulas
   const totalBeforePPN = data.totalBeforeTax - data.ppnAmount - data.pphAmount;
   const grandTotal = totalBeforePPN + data.ppnAmount + data.pphAmount;
+
+  // Get the school name from localStorage (set on the identity page)
+  const schoolIdentity = localStorage.getItem('schoolIdentity') ? 
+    JSON.parse(localStorage.getItem('schoolIdentity') || '{}') : 
+    { schoolName: '' };
+  
+  const schoolName = schoolIdentity.schoolName || '';
   
   return (
     <div className="bg-white w-full p-8 shadow-lg border rounded-md print:shadow-none print:border-0">
@@ -77,7 +84,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data }) => {
           <div className="flex">
             <span className="w-28">No. Pesanan</span>
             <span className="mr-2">:</span>
-            <span>{data.accountCode}</span>
+            <span>{data.recipient}</span>
           </div>
           <div className="flex">
             <span className="w-28">No. Surat Jalan</span>
@@ -91,7 +98,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data }) => {
               <span>Kepada</span>
             </div>
             <div>
-              <span className="font-bold">Yth. Kepala SDN {data.recipient}</span>
+              <span className="font-bold">Yth. Kepala SDN {schoolName}</span>
             </div>
             <div>
               <span>di</span>
@@ -192,6 +199,41 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data }) => {
           <p className="font-bold">Ananda Shafa Rianti</p>
         </div>
       </div>
+      
+      {/* Print styles */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          @page {
+            margin: 10mm;
+            size: A4;
+          }
+          
+          body {
+            background-color: white !important;
+          }
+          
+          .dialog-overlay, 
+          .dialog-content {
+            background: white !important;
+            box-shadow: none !important;
+            border: none !important;
+          }
+          
+          ::-webkit-scrollbar {
+            display: none !important;
+          }
+          
+          button, .close-button {
+            display: none !important;
+          }
+          
+          * {
+            -webkit-print-color-adjust: exact !important;
+            color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+        }
+      `}}/>
     </div>
   );
 };
