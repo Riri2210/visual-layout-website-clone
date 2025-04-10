@@ -64,9 +64,6 @@
     background-color: white;
     -webkit-print-color-adjust: exact;
     color-adjust: exact;
-    print-color-adjust: exact;
-    margin: 0;
-    padding: 0;
   }
   
   .print\:hidden {
@@ -79,9 +76,5 @@
   
   .print\:border-0 {
     border: none !important;
-  }
-  
-  .close-button {
-    display: none !important;
   }
 }
