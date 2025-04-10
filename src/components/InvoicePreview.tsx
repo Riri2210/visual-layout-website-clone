@@ -208,15 +208,40 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data }) => {
             size: A4;
           }
           
-          body {
+          html, body {
+            width: 210mm;
+            height: 297mm;
+            margin: 0;
+            padding: 0;
             background-color: white !important;
           }
           
-          .dialog-overlay, 
+          body * {
+            visibility: hidden;
+          }
+          
+          .dialog-content, .dialog-content * {
+            visibility: visible;
+          }
+          
           .dialog-content {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
             background: white !important;
             box-shadow: none !important;
             border: none !important;
+            transform: none !important;
+            max-height: none !important;
+            overflow: visible !important;
+          }
+          
+          .dialog-overlay {
+            display: none !important;
           }
           
           ::-webkit-scrollbar {
@@ -231,6 +256,11 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data }) => {
             -webkit-print-color-adjust: exact !important;
             color-adjust: exact !important;
             print-color-adjust: exact !important;
+          }
+          
+          /* Break to a new page when content exceeds page */
+          .page-break {
+            page-break-before: always;
           }
         }
       `}}/>
