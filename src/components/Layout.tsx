@@ -1,8 +1,8 @@
-
 import React, { useEffect } from 'react';
-import Sidebar from './sidebar/Sidebar';
+import Sidebar from './Sidebar';
 import Header from './Header';
 import { SidebarInset, SidebarTrigger, SidebarProvider, useSidebar } from './ui/sidebar';
+import { Menu } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,7 +10,8 @@ interface LayoutProps {
 }
 
 const LayoutContent = ({ children, title }: LayoutProps) => {
-  const { setOpen } = useSidebar();
+  const { setOpen, state } = useSidebar();
+  const isCollapsed = state === 'collapsed';
 
   // Add a click handler for the document to collapse sidebar on outside click
   useEffect(() => {
@@ -37,7 +38,9 @@ const LayoutContent = ({ children, title }: LayoutProps) => {
       <SidebarInset className="relative flex-1">
         <div className="p-4 md:p-6">
           <div className="flex items-center mb-6">
-            <SidebarTrigger className="mr-2 md:hidden" />
+            <SidebarTrigger className={`mr-2 ${isCollapsed ? 'block' : 'md:hidden'}`}>
+              <Menu size={24} />
+            </SidebarTrigger>
             <Header title={title} />
           </div>
           {children}

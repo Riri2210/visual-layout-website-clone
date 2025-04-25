@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { 
   Card, 
@@ -33,6 +32,7 @@ import {
   Shield, 
   Key
 } from 'lucide-react';
+import { getCurrentUser, changePassword } from '@/lib/authService';
 
 const profileSchema = z.object({
   name: z.string().min(2, {
@@ -41,8 +41,8 @@ const profileSchema = z.object({
   email: z.string().email({
     message: "Please enter a valid email.",
   }),
-  username: z.string().min(3, {
-    message: "Username must be at least 3 characters.",
+  npsn: z.string().min(1, {
+    message: "NPSN is required."
   }),
   bio: z.string().optional(),
 });
@@ -68,14 +68,19 @@ const securitySchema = z.object({
 
 const AccountSettings = () => {
   const { toast } = useToast();
+  const currentUser = getCurrentUser();
+  
+  // Load the school identity data
+  const schoolIdentityKey = `school-identity-${currentUser?.email}`;
+  const schoolData = JSON.parse(localStorage.getItem(schoolIdentityKey) || '{}');
   
   const profileForm = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      name: 'Admin Sekolah',
-      email: 'admin@sekolah.id',
-      username: 'adminsek',
-      bio: 'Administrator Sistem Faktur Sekolah',
+      name: currentUser?.name || schoolData?.schoolName || '',
+      email: currentUser?.email || '',
+      npsn: currentUser?.npsn || '',
+      bio: schoolData?.bio || 'Administrator Sistem Faktur Sekolah',
     },
   });
 
@@ -95,25 +100,63 @@ const AccountSettings = () => {
     },
   });
 
+  // Update the form when user data changes
+  useEffect(() => {
+    if (currentUser) {
+      profileForm.reset({
+        name: currentUser.name || schoolData?.schoolName || '',
+        email: currentUser.email || '',
+        npsn: currentUser.npsn || '',
+        bio: schoolData?.bio || 'Administrator Sistem Faktur Sekolah',
+      });
+    }
+  }, [currentUser, schoolData]);
+
   function onSaveProfile(values: z.infer<typeof profileSchema>) {
+    // In a real app, we would update the user profile in the database
+    // For now, we just show a success message
+    
+    // Also update the school identity data to keep them in sync
+    if (schoolData) {
+      const updatedSchoolData = { ...schoolData, schoolName: values.name };
+      localStorage.setItem(schoolIdentityKey, JSON.stringify(updatedSchoolData));
+    }
+    
     toast({
       title: "Profil tersimpan",
       description: "Perubahan profil berhasil disimpan.",
     });
-    console.log(values);
   }
 
-  function onChangePassword(values: z.infer<typeof passwordSchema>) {
-    toast({
-      title: "Password diubah",
-      description: "Password anda berhasil diubah.",
-    });
-    console.log(values);
-    passwordForm.reset({
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: '',
-    });
+  async function onChangePassword(values: z.infer<typeof passwordSchema>) {
+    try {
+      if (!currentUser?.email) {
+        throw new Error("User email not found");
+      }
+      
+      await changePassword(
+        currentUser.email,
+        values.currentPassword,
+        values.newPassword
+      );
+      
+      toast({
+        title: "Password diubah",
+        description: "Password anda berhasil diubah.",
+      });
+      
+      passwordForm.reset({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Gagal mengubah password",
+        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+      });
+    }
   }
 
   function onSaveSecurity(values: z.infer<typeof securitySchema>) {
@@ -121,7 +164,6 @@ const AccountSettings = () => {
       title: "Pengaturan keamanan tersimpan",
       description: "Perubahan pengaturan keamanan berhasil disimpan.",
     });
-    console.log(values);
   }
 
   return (
@@ -143,58 +185,44 @@ const AccountSettings = () => {
         <TabsContent value="profile">
           <Card>
             <CardHeader>
-              <CardTitle>Informasi Profil</CardTitle>
+              <CardTitle>Profil</CardTitle>
               <CardDescription>
-                Kelola informasi profil Anda di sini
+                Kelola informasi profil Anda
               </CardDescription>
             </CardHeader>
             <CardContent>
+              <div className="flex items-center space-x-4 mb-6">
+                <Avatar className="h-16 w-16">
+                  <AvatarFallback className="bg-primary text-white text-xl">
+                    {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="font-medium">{currentUser?.name || 'User'}</h3>
+                  <p className="text-sm text-muted-foreground">{currentUser?.email || 'user@example.com'}</p>
+                </div>
+              </div>
+              
               <Form {...profileForm}>
                 <form onSubmit={profileForm.handleSubmit(onSaveProfile)} className="space-y-6">
-                  <div className="flex items-center gap-4 mb-6">
-                    <Avatar className="h-20 w-20">
-                      <AvatarImage src="" />
-                      <AvatarFallback className="text-2xl">AS</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h3 className="text-lg font-medium">Foto Profil</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Unggah foto untuk profil Anda
-                      </p>
-                      <div className="flex gap-2 mt-2">
-                        <Button size="sm" variant="outline" type="button">
-                          Unggah Foto
-                        </Button>
-                        <Button size="sm" variant="outline" type="button">
-                          Hapus
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div className="grid md:grid-cols-2 gap-6 mt-6">
+                  <div className="space-y-4">
                     <FormField
                       control={profileForm.control}
                       name="name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="flex items-center gap-2">
-                            <User size={16} />
-                            Nama Lengkap
-                          </FormLabel>
+                          <FormLabel>Nama Sekolah</FormLabel>
                           <FormControl>
-                            <Input placeholder="Nama lengkap Anda" {...field} />
+                            <Input {...field} placeholder="Nama lengkap sekolah" />
                           </FormControl>
                           <FormDescription>
-                            Nama ini akan ditampilkan pada profil Anda.
+                            Nama ini akan ditampilkan dalam sistem dan invoice.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-
+                    
                     <FormField
                       control={profileForm.control}
                       name="email"
@@ -202,27 +230,27 @@ const AccountSettings = () => {
                         <FormItem>
                           <FormLabel>Email</FormLabel>
                           <FormControl>
-                            <Input type="email" placeholder="Email Anda" {...field} />
+                            <Input {...field} type="email" placeholder="Email sekolah Anda" disabled />
                           </FormControl>
                           <FormDescription>
-                            Email ini akan digunakan untuk komunikasi dan login.
+                            Email ini digunakan untuk login ke sistem.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-
+                    
                     <FormField
                       control={profileForm.control}
-                      name="username"
+                      name="npsn"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Username</FormLabel>
+                          <FormLabel>NPSN</FormLabel>
                           <FormControl>
-                            <Input placeholder="Username Anda" {...field} />
+                            <Input {...field} placeholder="Nomor Pokok Sekolah Nasional" disabled />
                           </FormControl>
                           <FormDescription>
-                            Username untuk login ke sistem.
+                            Nomor Pokok Sekolah Nasional yang terdaftar.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -236,10 +264,10 @@ const AccountSettings = () => {
                         <FormItem>
                           <FormLabel>Bio</FormLabel>
                           <FormControl>
-                            <Input placeholder="Deskripsi singkat tentang Anda" {...field} />
+                            <Input {...field} placeholder="Deskripsi singkat tentang Anda" />
                           </FormControl>
                           <FormDescription>
-                            Deskripsi singkat tentang Anda.
+                            Informasi tambahan tentang sekolah.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -248,7 +276,7 @@ const AccountSettings = () => {
                   </div>
                   
                   <div className="flex justify-end">
-                    <Button type="submit">Simpan Profil</Button>
+                    <Button type="submit">Simpan Perubahan</Button>
                   </div>
                 </form>
               </Form>
@@ -259,9 +287,9 @@ const AccountSettings = () => {
         <TabsContent value="password">
           <Card>
             <CardHeader>
-              <CardTitle>Ubah Password</CardTitle>
+              <CardTitle>Password</CardTitle>
               <CardDescription>
-                Update password akun Anda
+                Ubah password akun Anda
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -273,21 +301,15 @@ const AccountSettings = () => {
                       name="currentPassword"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="flex items-center gap-2">
-                            <Lock size={16} />
-                            Password Saat Ini
-                          </FormLabel>
+                          <FormLabel>Password Saat Ini</FormLabel>
                           <FormControl>
-                            <Input type="password" placeholder="••••••••" {...field} />
+                            <Input {...field} type="password" placeholder="Masukkan password saat ini" />
                           </FormControl>
-                          <FormDescription>
-                            Masukkan password Anda saat ini.
-                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-
+                    
                     <FormField
                       control={passwordForm.control}
                       name="newPassword"
@@ -295,7 +317,7 @@ const AccountSettings = () => {
                         <FormItem>
                           <FormLabel>Password Baru</FormLabel>
                           <FormControl>
-                            <Input type="password" placeholder="••••••••" {...field} />
+                            <Input {...field} type="password" placeholder="Masukkan password baru" />
                           </FormControl>
                           <FormDescription>
                             Password minimal 8 karakter.
@@ -304,18 +326,18 @@ const AccountSettings = () => {
                         </FormItem>
                       )}
                     />
-
+                    
                     <FormField
                       control={passwordForm.control}
                       name="confirmPassword"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Konfirmasi Password</FormLabel>
+                          <FormLabel>Konfirmasi Password Baru</FormLabel>
                           <FormControl>
-                            <Input type="password" placeholder="••••••••" {...field} />
+                            <Input {...field} type="password" placeholder="Konfirmasi password baru" />
                           </FormControl>
                           <FormDescription>
-                            Masukkan password baru sekali lagi.
+                            Ulangi password baru untuk konfirmasi.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -368,7 +390,13 @@ const AccountSettings = () => {
                           <div>
                             <h4 className="font-medium">Login Terakhir</h4>
                             <p className="text-sm text-muted-foreground">
-                              Jakarta, Indonesia - 05 Apr 2025, 09:45
+                              Jakarta, Indonesia - {new Date().toLocaleDateString('id-ID', { 
+                                  day: '2-digit', 
+                                  month: 'short', 
+                                  year: 'numeric', 
+                                  hour: '2-digit', 
+                                  minute: '2-digit' 
+                              })}
                             </p>
                           </div>
                           <Button variant="outline" size="sm">Detail</Button>

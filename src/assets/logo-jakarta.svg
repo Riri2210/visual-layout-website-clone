@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="120" height="140" viewBox="0 0 120 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M60.5 4.5C80.5 4.5 100 4.5 107 18C114 31.5 109 44 109 44C109 44 113.5 64 113.5 80C113.5 96 102 111 83 124C64 111 48.5 96 48.5 80C48.5 64 53 44 53 44C53 44 48 31.5 55 18C62 4.5 81.5 4.5 101.5 4.5H60.5Z" fill="white" stroke="black" stroke-width="1"/>
+  <path d="M60 15L65 127M60 15L55 127M60 15V127" stroke="black" stroke-width="4"/>
+  <path d="M14 50C27.5 40 47.5 30 60 30C72.5 30 92.5 40 106 50" stroke="black" stroke-width="1"/>
+  <path d="M18 126H102" stroke="black" stroke-width="3"/>
+  <path d="M25 115C25 115 40 120 60 120C80 120 95 115 95 115V126H25V115Z" fill="white" stroke="black" stroke-width="1"/>
+  <path d="M10 135H110" stroke="black" stroke-width="3"/>
+  <text x="60" y="15" font-family="Arial" font-size="12" text-anchor="middle" fill="black">JAYA RAYA</text>
+  <path d="M15 30C15 30 40 53 60 53C80 53 105 30 105 30" fill="none" stroke="black" stroke-width="1.5"/>
+  <path d="M16 80C24 65 40 55 60 55C80 55 96 65 104 80" fill="none" stroke="black" stroke-width="1"/>
+  <path d="M20 104C30 90 45 85 60 85C75 85 90 90 100 104" fill="none" stroke="black" stroke-width="1"/>
+  <!-- Left leaf branch -->
+  <path d="M30 110C25 90 30 70 40 50C35 70 35 90 30 110Z" fill="none" stroke="black" stroke-width="1.5"/>
+  <path d="M35 108C32 90 35 72 42 55C38 72 38 90 35 108Z" fill="none" stroke="black" stroke-width="1.5"/>
+  <path d="M40 106C38 90 40 74 45 60C42 74 42 90 40 106Z" fill="none" stroke="black" stroke-width="1.5"/>
+  <path d="M45 104C43 90 45 76 48 65C46 76 46 90 45 104Z" fill="none" stroke="black" stroke-width="1.5"/>
+  <!-- Right flower branch -->
+  <path d="M90 110C95 90 90 70 80 50C85 70 85 90 90 110Z" fill="none" stroke="black" stroke-width="1.5"/>
+  <circle cx="83" cy="60" r="5" fill="white" stroke="black" stroke-width="1"/>
+  <circle cx="87" cy="70" r="5" fill="white" stroke="black" stroke-width="1"/>
+  <circle cx="89" cy="82" r="5" fill="white" stroke="black" stroke-width="1"/>
+  <circle cx="88" cy="95" r="5" fill="white" stroke="black" stroke-width="1"/>
+  <!-- Bow at the bottom -->
+  <path d="M50 114C55 112 65 112 70 114" fill="none" stroke="black" stroke-width="1"/>
+  <path d="M60 114C55 118 50 120 40 118M60 114C65 118 70 120 80 118" fill="none" stroke="black" stroke-width="1"/>
+</svg>

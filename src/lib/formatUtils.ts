@@ -1,4 +1,3 @@
-
 export const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('id-ID', { 
     style: 'currency', 
@@ -34,16 +33,54 @@ export const calculateAdministration = (totalPrice: number): number => {
   return totalPrice * 0.05; // 4% + 1% = 5%
 };
 
-export const saveInvoiceToHistory = (invoice: any) => {
-  const existingInvoices = localStorage.getItem('invoiceHistory');
-  const invoiceHistory = existingInvoices ? JSON.parse(existingInvoices) : [];
-  
-  invoiceHistory.push({
-    ...invoice,
-    timestamp: new Date().toISOString()
-  });
-  
-  localStorage.setItem('invoiceHistory', JSON.stringify(invoiceHistory));
+export const saveInvoiceToHistory = async (invoice: any) => {
+  try {
+    // Buat backup di localStorage seperti sebelumnya
+    const existingInvoices = localStorage.getItem('invoiceHistory');
+    const invoiceHistory = existingInvoices ? JSON.parse(existingInvoices) : [];
+    
+    const invoiceWithTimestamp = {
+      ...invoice,
+      timestamp: new Date().toISOString()
+    };
+    
+    // Periksa jika invoice sudah ada (untuk update)
+    const existingIndex = invoiceHistory.findIndex(item => item.no_faktur === invoice.no_faktur);
+    if (existingIndex >= 0) {
+      invoiceHistory[existingIndex] = invoiceWithTimestamp;
+    } else {
+      invoiceHistory.push(invoiceWithTimestamp);
+    }
+    
+    // Simpan ke localStorage
+    localStorage.setItem('invoiceHistory', JSON.stringify(invoiceHistory));
+    
+    // Coba simpan ke server jika tersedia
+    try {
+      // Jika fungsi dijalankan di lingkungan browser
+      if (typeof window !== 'undefined') {
+        const response = await fetch('http://localhost:3001/api/invoices', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(invoiceWithTimestamp),
+        });
+        
+        if (!response.ok) {
+          console.warn('Gagal menyimpan faktur ke server, tetapi berhasil disimpan di localStorage');
+        }
+      }
+    } catch (error) {
+      console.warn('Error saat menyimpan ke server:', error);
+      console.log('Faktur hanya tersimpan di localStorage');
+    }
+    
+    return invoiceWithTimestamp;
+  } catch (error) {
+    console.error('Gagal menyimpan faktur:', error);
+    throw error;
+  }
 };
 
 export const generateLetterNumber = (

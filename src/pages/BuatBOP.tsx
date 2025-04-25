@@ -27,6 +27,7 @@ import {
 } from '@/lib/formatUtils';
 import InvoicePreview from '@/components/InvoicePreview';
 import { useNavigate } from 'react-router-dom';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 interface Item {
   id: string;
@@ -83,9 +84,15 @@ const getRomanMonth = (monthNumber: number): string => {
   return romanMonths[monthNumber - 1];
 };
 
+const getDayName = (date: Date): string => {
+  const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  return days[date.getDay()];
+};
+
 const BuatBOP = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { addNotification } = useNotifications();
   
   const [invoiceInfo, setInvoiceInfo] = useState({
     fundSource: 'bop',
@@ -143,26 +150,24 @@ const BuatBOP = () => {
   };
 
   const calculateSummary = (items: Item[]) => {
-    const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+    const subtotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
     
     const totalPPN = items.reduce((sum, item) => {
       if (!item.ppn) return sum;
-      return sum + calculatePPN(item.quantity * item.unitPrice);
+      const itemPPN = item.totalPrice - (100/111 * item.totalPrice);
+      return sum + itemPPN;
     }, 0);
     
     const totalPPH = items.reduce((sum, item) => {
       if (!item.pph) return sum;
-      const itemSubtotal = item.quantity * item.unitPrice;
-      const itemPPN = item.ppn ? calculatePPN(itemSubtotal) : 0;
-      const pphPercentage = item.pphPercentage ? parseFloat(item.pphPercentage.replace('%', '')) : 2;
-      return sum + calculatePPH(itemSubtotal, itemPPN, pphPercentage);
+      const itemPPN = item.ppn ? (item.totalPrice - (100/111 * item.totalPrice)) : 0;
+      const pphPercentage = item.pphPercentage ? parseFloat(item.pphPercentage.replace('%', '')) / 100 : 0.02;
+      return sum + ((item.totalPrice - itemPPN) * pphPercentage);
     }, 0);
     
     const totalNetto = subtotal - totalPPN - totalPPH;
     
-    const adminFourPercent = totalNetto * 0.04;
-    const adminOnePercent = totalNetto * 0.01;
-    const administration = adminFourPercent + adminOnePercent;
+    const administration = totalNetto * 0.05;
     
     const sekolahAmount = totalNetto - administration;
     
@@ -173,8 +178,6 @@ const BuatBOP = () => {
       totalPPN,
       totalPPH,
       totalNetto,
-      adminFourPercent,
-      adminOnePercent,
       administration,
       sekolahAmount,
       total
@@ -189,20 +192,32 @@ const BuatBOP = () => {
       ...updatedItem,
     };
 
-    if (newItems[index].ppn || newItems[index].pph) {
-      const itemSubtotal = newItems[index].quantity * newItems[index].unitPrice;
-      const itemPPN = newItems[index].ppn ? calculatePPN(itemSubtotal) : 0;
-      
-      const pphAmount = newItems[index].pph ? (itemSubtotal - itemPPN) : 0;
-      
-      newItems[index].netto = itemSubtotal - itemPPN - pphAmount;
-    } else {
-      newItems[index].netto = newItems[index].quantity * newItems[index].unitPrice;
+    // Calculate unitPrice from totalPrice and quantity (if either was updated)
+    if (updatedItem.totalPrice !== undefined || updatedItem.quantity !== undefined) {
+      // Ensure we don't divide by zero
+      if (newItems[index].quantity > 0) {
+        newItems[index].unitPrice = newItems[index].totalPrice / newItems[index].quantity;
+      } else {
+        newItems[index].unitPrice = 0;
+      }
+    }
+
+    // Calculate PPN, PPH and netto
+    const totalPrice = newItems[index].totalPrice;
+    
+    // Calculate PPN: Harga Total - (100/111 * Harga Total)
+    const itemPPN = newItems[index].ppn ? (totalPrice - (100/111 * totalPrice)) : 0;
+    
+    // Calculate PPH: (Harga Total - PPN) * PPH percentage
+    let pphPercentageValue = 0;
+    if (newItems[index].pph && newItems[index].pphPercentage) {
+      pphPercentageValue = parseFloat(newItems[index].pphPercentage.replace('%', '')) / 100;
     }
     
-    if (updatedItem.quantity !== undefined || updatedItem.unitPrice !== undefined) {
-      newItems[index].totalPrice = newItems[index].quantity * newItems[index].unitPrice;
-    }
+    const pphAmount = newItems[index].pph ? ((totalPrice - itemPPN) * pphPercentageValue) : 0;
+    
+    // Calculate Netto: (Harga Total - PPN) - PPH
+    newItems[index].netto = (totalPrice - itemPPN) - pphAmount;
 
     setItems(newItems);
     
@@ -301,10 +316,11 @@ const BuatBOP = () => {
     
     const invoiceNumber = generateInvoiceNumber();
     const currentDate = new Date();
+    const dayName = getDayName(currentDate);
     
     const invoiceData = {
       no_faktur: invoiceNumber,
-      tanggal: `${currentDate.getDate()} ${getMonthName(currentDate.getMonth() + 1)} ${currentDate.getFullYear()}`,
+      tanggal: `${dayName}, ${currentDate.getDate()} ${getMonthName(currentDate.getMonth() + 1)} ${currentDate.getFullYear()}`,
       sumber_dana: invoiceInfo.fundSource.toUpperCase(),
       kegiatan: invoiceInfo.activityName,
       total: formatCurrency(summary.total),
@@ -316,9 +332,14 @@ const BuatBOP = () => {
       transactionNumber: invoiceInfo.transactionNumber
     };
     
-    localStorage.setItem('lastTransactionNumber', invoiceInfo.transactionNumber);
+    localStorage.setItem('lastBOPTransactionNumber', invoiceInfo.transactionNumber);
     
     saveInvoiceToHistory(invoiceData);
+    
+    addNotification(
+      `Data BOP anda telah berhasil tersimpan dengan nomor faktur: ${invoiceNumber}`,
+      'bop'
+    );
     
     toast({
       title: "Faktur Dibuat",
@@ -334,17 +355,17 @@ const BuatBOP = () => {
 
   const getInvoicePreviewData = () => {
     return {
-      invoiceNumber: generateInvoiceNumber(),
-      date: `Tanggal ${invoiceInfo.activityDate.split('-')[2]} ${getMonthName(parseInt(invoiceInfo.activityDate.split('-')[1], 10))} ${invoiceInfo.activityDate.split('-')[0]}`,
+      no_faktur: generateInvoiceNumber(),
+      tanggal: `${getDayName(new Date())}, ${new Date().getDate()} ${getMonthName(new Date().getMonth() + 1)} ${new Date().getFullYear()}`,
+      sumber_dana: invoiceInfo.fundSource.toUpperCase(),
+      kegiatan: invoiceInfo.activityName,
+      total: formatCurrency(summary.total),
+      items,
+      summary,
+      accountCode: invoiceInfo.accountCode,
       recipient: invoiceInfo.recipient,
-      items: items,
-      totalBeforeTax: summary.subtotal,
-      ppnAmount: summary.totalPPN,
-      pphAmount: summary.totalPPH,
-      administrationAmount: summary.administration,
-      grandTotal: summary.total,
-      activityName: invoiceInfo.activityName,
-      accountCode: invoiceInfo.accountCode || '15291/PK.01.01'
+      activityDate: invoiceInfo.activityDate,
+      transactionNumber: invoiceInfo.transactionNumber
     };
   };
 
@@ -477,7 +498,8 @@ const BuatBOP = () => {
                       <Input 
                         type="number" 
                         value={item.totalPrice} 
-                        readOnly 
+                        min={0}
+                        onChange={(e) => handleItemChange(index, 'totalPrice', parseInt(e.target.value) || 0)}
                         className="text-right"
                       />
                     </TableCell>
@@ -511,7 +533,7 @@ const BuatBOP = () => {
                         type="number" 
                         value={item.unitPrice} 
                         min={0}
-                        onChange={(e) => handleItemChange(index, 'unitPrice', parseInt(e.target.value) || 0)}
+                        readOnly
                         className="text-right"
                       />
                     </TableCell>
@@ -589,15 +611,7 @@ const BuatBOP = () => {
                 <span>{formatCurrency(summary.totalNetto)}</span>
               </div>
               <div className="flex justify-between py-2">
-                <span className="font-medium">4%</span>
-                <span>{formatCurrency(summary.adminFourPercent)}</span>
-              </div>
-              <div className="flex justify-between py-2">
-                <span className="font-medium">1%</span>
-                <span>{formatCurrency(summary.adminOnePercent)}</span>
-              </div>
-              <div className="flex justify-between py-2">
-                <span className="font-medium">Admin</span>
+                <span className="font-medium">5%</span>
                 <span>{formatCurrency(summary.administration)}</span>
               </div>
               <div className="flex justify-between py-2">

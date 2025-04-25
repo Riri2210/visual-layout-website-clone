@@ -1,13 +1,53 @@
-
-import React from 'react';
-import { Bell, Search } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Search } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import NotificationDropdown from './NotificationDropdown';
 
 interface HeaderProps {
   title: string;
 }
 
+interface User {
+  username: string;
+  name?: string;
+  email?: string;
+}
+
 const Header = ({ title }: HeaderProps) => {
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    // Get current user from localStorage
+    const currentUser = localStorage.getItem('currentUser');
+    if (currentUser) {
+      try {
+        const userData = JSON.parse(currentUser);
+        setUser(userData);
+      } catch (error) {
+        console.error('Failed to parse user data:', error);
+      }
+    }
+  }, []);
+
+  const getUserInitials = () => {
+    if (!user) return 'U';
+    
+    if (user.name) {
+      const names = user.name.split(' ');
+      if (names.length > 1) {
+        return `${names[0][0]}${names[1][0]}`.toUpperCase();
+      }
+      return user.name[0].toUpperCase();
+    }
+    
+    return user.username[0].toUpperCase();
+  };
+
+  const getDisplayName = () => {
+    if (!user) return 'User';
+    return user.name || user.username;
+  };
+
   return (
     <div className="flex items-center justify-between mb-6">
       <h1 className="text-2xl font-semibold">{title}</h1>
@@ -22,16 +62,13 @@ const Header = ({ title }: HeaderProps) => {
           />
         </div>
         
-        <button className="relative p-2">
-          <Bell size={20} className="text-gray-600" />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-        </button>
+        <NotificationDropdown />
         
         <div className="flex items-center gap-2">
           <Avatar className="h-8 w-8 bg-primary text-white">
-            <AvatarFallback>A</AvatarFallback>
+            <AvatarFallback>{getUserInitials()}</AvatarFallback>
           </Avatar>
-          <span className="text-sm font-medium">admin1</span>
+          <span className="text-sm font-medium">{getDisplayName()}</span>
         </div>
       </div>
     </div>

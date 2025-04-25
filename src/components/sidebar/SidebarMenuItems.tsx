@@ -1,7 +1,5 @@
-
 import React from 'react';
 import { useLocation } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
 import { SidebarMenu } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import SidebarMenuItemComponent from './SidebarMenuItem';
@@ -27,16 +25,16 @@ const SidebarMenuItems = ({
   if (currentItems.length > 0) {
     return (
       <div className="mb-4">
-        <div className="px-4 py-2 text-xs tracking-wider text-sidebar-foreground/70 flex items-center">
+        <div className="px-4 py-2 text-xs font-medium tracking-wider text-sidebar-foreground/80 flex items-center border-b border-border/40 mb-2">
           <Button 
             variant="ghost" 
             size="sm" 
             onClick={onBackClick} 
-            className="mr-1 p-1 h-auto"
+            className="mr-2 p-1 h-auto hover:bg-accent"
           >
-            <ChevronLeft size={16} />
+            <span className="text-base">←</span>
           </Button>
-          {currentTitle}
+          <span className="uppercase">{currentTitle}</span>
         </div>
         
         <SidebarMenu>

@@ -1,12 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Edit, Eye, FileText, Printer } from 'lucide-react';
+import { Edit, Eye, FileText, Printer, Trash2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import InvoicePreview from '@/components/InvoicePreview';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -50,6 +49,8 @@ const RiwayatFaktur = () => {
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceHistoryItem | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [invoiceToDelete, setInvoiceToDelete] = useState<InvoiceHistoryItem | null>(null);
 
   useEffect(() => {
     const storedInvoices = localStorage.getItem('invoiceHistory');
@@ -128,22 +129,63 @@ const RiwayatFaktur = () => {
     
     toast({
       title: "Unduh Faktur",
-      description: "Faktur sedang disiapkan untuk diunduh",
+      description: "Faktur sedang disiapkan untuk diunduh. Silakan gunakan opsi 'Simpan sebagai PDF' pada dialog cetak.",
     });
     
+    // Set a temporary print mode
+    const originalTitle = document.title;
+    document.title = `Invoice-${invoice.no_faktur}`;
+    
+    // Create a print-only view
+    setPreviewOpen(true);
+    
+    // Wait for the dialog to open, then trigger print
     setTimeout(() => {
+      window.print();
+      
+      // Reset after printing
+      setTimeout(() => {
+        document.title = originalTitle;
+        setIsDownloading(false);
+        
+        toast({
+          title: "Faktur Siap Diunduh",
+          description: `Gunakan opsi "Simpan sebagai PDF" pada dialog cetak untuk menyimpan faktur ${invoice.no_faktur}`,
+        });
+      }, 1000);
+    }, 500);
+  };
+
+  const handleDeleteInvoice = (invoice: InvoiceHistoryItem) => {
+    setInvoiceToDelete(invoice);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteInvoice = () => {
+    if (invoiceToDelete) {
+      // Filter out the invoice to delete
+      const updatedInvoices = fakturData.filter(inv => inv.no_faktur !== invoiceToDelete.no_faktur);
+      
+      // Update state
+      setFakturData(updatedInvoices);
+      
+      // Update localStorage
+      localStorage.setItem('invoiceHistory', JSON.stringify(updatedInvoices));
+      
+      // Close dialog and show confirmation
+      setDeleteDialogOpen(false);
+      
       toast({
-        title: "Faktur Diunduh",
-        description: `Faktur ${invoice.no_faktur} berhasil diunduh`,
+        title: "Faktur Dihapus",
+        description: `Faktur ${invoiceToDelete.no_faktur} telah berhasil dihapus`,
       });
-      setIsDownloading(false);
-    }, 1500);
+    }
   };
 
   const getInvoicePreviewData = (invoice: InvoiceHistoryItem) => {
     return {
-      invoiceNumber: invoice.no_faktur,
-      date: invoice.tanggal,
+      invoiceNumber: generateNomorFaktur(invoice),
+      date: formatDateWithDay(invoice.activityDate || invoice.tanggal),
       recipient: invoice.recipient,
       items: invoice.items,
       totalBeforeTax: invoice.summary.subtotal,
@@ -152,26 +194,82 @@ const RiwayatFaktur = () => {
       administrationAmount: invoice.summary.administration,
       grandTotal: invoice.summary.total,
       activityName: invoice.kegiatan,
-      accountCode: invoice.accountCode
+      accountCode: invoice.accountCode || '15291/PK.01.01',
+      suratJalan: generateNomorSuratJalan(invoice)
     };
   };
 
   const generateNomorSuratJalan = (invoice: InvoiceHistoryItem): string => {
     const activityDate = invoice.activityDate || invoice.tanggal;
-    const datePart = activityDate.replace(/-/g, '');
+    // Convert date string to YYYYMMDD format
+    let datePart = '';
+    if (activityDate.includes('-')) {
+      // Handle ISO date format
+      const parts = activityDate.split(/[- ]/);
+      if (parts.length >= 3) {
+        datePart = parts[0] + parts[1].padStart(2, '0') + parts[2].padStart(2, '0');
+      }
+    } else {
+      // Extract date from format like "Senin, 25 April 2024"
+      const dateMatch = activityDate.match(/(\d+)\s+(\w+)\s+(\d{4})/);
+      if (dateMatch) {
+        const day = dateMatch[1].padStart(2, '0');
+        const year = dateMatch[3];
+        const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+        const month = (monthNames.findIndex(m => m.toLowerCase() === dateMatch[2].toLowerCase()) + 1).toString().padStart(2, '0');
+        datePart = year + month + day;
+      }
+    }
+    
     const transactionNumber = invoice.transactionNumber || '001';
-    const schoolCode = "B07";
+    // Extract school code: first letter of school name + school number
+    const schoolCode = "B07"; // Hardcoded as "B" from "Baru" and "07" from school number
     
     return `HMI.SJ.${datePart}${transactionNumber}${schoolCode}`;
+  };
+
+  const generateNomorFaktur = (invoice: InvoiceHistoryItem): string => {
+    const activityDate = invoice.activityDate || invoice.tanggal;
+    // Convert date string to YYYYMMDD format
+    let datePart = '';
+    if (activityDate.includes('-')) {
+      // Handle ISO date format
+      const parts = activityDate.split(/[- ]/);
+      if (parts.length >= 3) {
+        datePart = parts[0] + parts[1].padStart(2, '0') + parts[2].padStart(2, '0');
+      }
+    } else {
+      // Extract date from format like "Senin, 25 April 2024"
+      const dateMatch = activityDate.match(/(\d+)\s+(\w+)\s+(\d{4})/);
+      if (dateMatch) {
+        const day = dateMatch[1].padStart(2, '0');
+        const year = dateMatch[3];
+        const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+        const month = (monthNames.findIndex(m => m.toLowerCase() === dateMatch[2].toLowerCase()) + 1).toString().padStart(2, '0');
+        datePart = year + month + day;
+      }
+    }
+    
+    const transactionNumber = invoice.transactionNumber || '001';
+    // Extract school code: first letter of school name + school number
+    const schoolCode = "B07"; // Hardcoded as "B" from "Baru" and "07" from school number
+    
+    return `HMI.F.${datePart}${transactionNumber}${schoolCode}`;
   };
 
   const generateNomorSuratPesanan = (invoice: InvoiceHistoryItem): string => {
     const activityDate = invoice.activityDate || invoice.tanggal;
     const date = new Date(activityDate);
     const transactionNumber = invoice.transactionNumber || '001';
-    const schoolCode = "B07";
+    const month = getRomanMonth(date.getMonth() + 1);
+    const year = date.getFullYear();
     
-    return generateLetterNumber('HMI.P1', date, transactionNumber, schoolCode);
+    return `${transactionNumber}/PK.01.01/${month}/${year}`;
+  };
+
+  const getRomanMonth = (monthNumber: number): string => {
+    const romanMonths = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+    return romanMonths[monthNumber - 1];
   };
 
   const formatDateWithDay = (dateString: string): string => {
@@ -272,65 +370,143 @@ const RiwayatFaktur = () => {
                 <TableHead>SUMBER DANA</TableHead>
                 <TableHead>KODE REKENING</TableHead>
                 <TableHead>KEGIATAN</TableHead>
-                <TableHead>GROSS</TableHead>
-                <TableHead>TOTAL VAT</TableHead>
+                <TableHead>BRUTO</TableHead>
+                <TableHead>TOTAL PPN</TableHead>
                 <TableHead>TOTAL PPH</TableHead>
                 <TableHead>TOTAL NETTO</TableHead>
                 <TableHead>4%</TableHead>
                 <TableHead>1%</TableHead>
                 <TableHead>ADMIN</TableHead>
-                <TableHead>SCHOOL</TableHead>
+                <TableHead>SEKOLAH</TableHead>
                 <TableHead>TOTAL</TableHead>
                 <TableHead>TINDAKAN</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {fakturData && fakturData.length > 0 ? (
-                filteredInvoices.map((faktur, index) => {
-                  const netto = faktur.summary.subtotal - faktur.summary.totalPPN - faktur.summary.totalPPH;
-                  const fourPercent = faktur.summary.adminFourPercent || netto * 0.04;
-                  const onePercent = faktur.summary.adminOnePercent || netto * 0.01;
-                  const adminTotal = fourPercent + onePercent;
-                  const school = netto - adminTotal;
-                  
-                  return (
-                    <TableRow key={index}>
-                      <TableCell>{faktur.transactionNumber || '001'}</TableCell>
-                      <TableCell>{faktur.no_faktur}</TableCell>
-                      <TableCell>{generateNomorSuratJalan(faktur)}</TableCell>
-                      <TableCell>{generateNomorSuratPesanan(faktur)}</TableCell>
-                      <TableCell>{formatDateWithDay(faktur.activityDate || faktur.tanggal)}</TableCell>
-                      <TableCell>{faktur.sumber_dana}</TableCell>
-                      <TableCell>{faktur.accountCode || '-'}</TableCell>
-                      <TableCell>{faktur.kegiatan}</TableCell>
-                      <TableCell>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(faktur.summary.subtotal)}</TableCell>
-                      <TableCell>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(faktur.summary.totalPPN)}</TableCell>
-                      <TableCell>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(faktur.summary.totalPPH)}</TableCell>
-                      <TableCell>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(netto)}</TableCell>
-                      <TableCell>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(fourPercent)}</TableCell>
-                      <TableCell>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(onePercent)}</TableCell>
-                      <TableCell>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(adminTotal)}</TableCell>
-                      <TableCell>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(school)}</TableCell>
-                      <TableCell className="font-medium">{faktur.total}</TableCell>
-                      <TableCell>
-                        <div className="flex space-x-1">
-                          <Button size="sm" variant="ghost" onClick={() => handleEditInvoice(faktur)}>
-                            <Edit size={16} className="text-blue-600" />
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => handleViewInvoice(faktur)}>
-                            <Eye size={16} className="text-green-600" />
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => handleDownloadInvoice(faktur)}>
-                            <FileText size={16} className="text-gray-600" />
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => handlePrintInvoice(faktur)}>
-                            <Printer size={16} className="text-gray-600" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
+                <>
+                  {filteredInvoices.map((faktur, index) => {
+                    const netto = faktur.summary.subtotal - faktur.summary.totalPPN - faktur.summary.totalPPH;
+                    const fourPercent = faktur.summary.adminFourPercent || netto * 0.04;
+                    const onePercent = faktur.summary.adminOnePercent || netto * 0.01;
+                    const adminTotal = fourPercent + onePercent;
+                    const school = netto - adminTotal;
+                    
+                    return (
+                      <TableRow key={index}>
+                        <TableCell>{faktur.transactionNumber || '001'}</TableCell>
+                        <TableCell>{generateNomorFaktur(faktur)}</TableCell>
+                        <TableCell>{generateNomorSuratJalan(faktur)}</TableCell>
+                        <TableCell>{generateNomorSuratPesanan(faktur)}</TableCell>
+                        <TableCell>{formatDateWithDay(faktur.activityDate || faktur.tanggal)}</TableCell>
+                        <TableCell>{faktur.sumber_dana}</TableCell>
+                        <TableCell>{faktur.accountCode || '-'}</TableCell>
+                        <TableCell>{faktur.kegiatan}</TableCell>
+                        <TableCell>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(faktur.summary.subtotal)}</TableCell>
+                        <TableCell>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(faktur.summary.totalPPN)}</TableCell>
+                        <TableCell>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(faktur.summary.totalPPH)}</TableCell>
+                        <TableCell>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(netto)}</TableCell>
+                        <TableCell>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(fourPercent)}</TableCell>
+                        <TableCell>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(onePercent)}</TableCell>
+                        <TableCell>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(adminTotal)}</TableCell>
+                        <TableCell>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(school)}</TableCell>
+                        <TableCell className="font-medium">{faktur.total}</TableCell>
+                        <TableCell>
+                          <div className="flex space-x-1">
+                            <Button size="sm" variant="ghost" onClick={() => handleEditInvoice(faktur)}>
+                              <Edit size={16} className="text-blue-600" />
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => handleViewInvoice(faktur)}>
+                              <Eye size={16} className="text-green-600" />
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => handleDownloadInvoice(faktur)}>
+                              <FileText size={16} className="text-gray-600" />
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => handlePrintInvoice(faktur)}>
+                              <Printer size={16} className="text-gray-600" />
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => handleDeleteInvoice(faktur)}>
+                              <Trash2 size={16} className="text-red-600" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {/* Total Row */}
+                  <TableRow className="font-bold bg-gray-100">
+                    <TableCell colSpan={8} className="text-right">TOTAL:</TableCell>
+                    <TableCell>
+                      {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(
+                        filteredInvoices.reduce((sum, faktur) => sum + faktur.summary.subtotal, 0)
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(
+                        filteredInvoices.reduce((sum, faktur) => sum + faktur.summary.totalPPN, 0)
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(
+                        filteredInvoices.reduce((sum, faktur) => sum + faktur.summary.totalPPH, 0)
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(
+                        filteredInvoices.reduce((sum, faktur) => {
+                          const netto = faktur.summary.subtotal - faktur.summary.totalPPN - faktur.summary.totalPPH;
+                          return sum + netto;
+                        }, 0)
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(
+                        filteredInvoices.reduce((sum, faktur) => {
+                          const netto = faktur.summary.subtotal - faktur.summary.totalPPN - faktur.summary.totalPPH;
+                          const fourPercent = faktur.summary.adminFourPercent || netto * 0.04;
+                          return sum + fourPercent;
+                        }, 0)
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(
+                        filteredInvoices.reduce((sum, faktur) => {
+                          const netto = faktur.summary.subtotal - faktur.summary.totalPPN - faktur.summary.totalPPH;
+                          const onePercent = faktur.summary.adminOnePercent || netto * 0.01;
+                          return sum + onePercent;
+                        }, 0)
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(
+                        filteredInvoices.reduce((sum, faktur) => {
+                          const netto = faktur.summary.subtotal - faktur.summary.totalPPN - faktur.summary.totalPPH;
+                          const fourPercent = faktur.summary.adminFourPercent || netto * 0.04;
+                          const onePercent = faktur.summary.adminOnePercent || netto * 0.01;
+                          return sum + fourPercent + onePercent;
+                        }, 0)
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(
+                        filteredInvoices.reduce((sum, faktur) => {
+                          const netto = faktur.summary.subtotal - faktur.summary.totalPPN - faktur.summary.totalPPH;
+                          const fourPercent = faktur.summary.adminFourPercent || netto * 0.04;
+                          const onePercent = faktur.summary.adminOnePercent || netto * 0.01;
+                          const adminTotal = fourPercent + onePercent;
+                          const school = netto - adminTotal;
+                          return sum + school;
+                        }, 0)
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(
+                        filteredInvoices.reduce((sum, faktur) => sum + parseFloat(faktur.total.replace(/[^\d]/g, '')), 0)
+                      )}
+                    </TableCell>
+                    <TableCell></TableCell>
+                  </TableRow>
+                </>
               ) : (
                 <TableRow>
                   <TableCell colSpan={18} className="text-center py-8 text-gray-500">
@@ -362,9 +538,34 @@ const RiwayatFaktur = () => {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      {invoiceToDelete && (
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <AlertCircle className="text-red-500" size={20} />
+                Konfirmasi Hapus Faktur
+              </DialogTitle>
+              <DialogDescription>
+                Apakah Anda yakin ingin menghapus faktur <span className="font-medium">{invoiceToDelete.no_faktur}</span>?
+                Tindakan ini tidak dapat dibatalkan.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                Batal
+              </Button>
+              <Button variant="destructive" onClick={confirmDeleteInvoice}>
+                Hapus Faktur
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </Layout>
   );
 };
 
 export default RiwayatFaktur;
-
